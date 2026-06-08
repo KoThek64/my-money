@@ -13,10 +13,7 @@ GREEN = \033[0;32m
 NC    = \033[0m
 
 .DEFAULT_GOAL := help
-.PHONY: help install serve start stop watch assets cc \
-        db-create db-drop migration migrate fixtures db-reset \
-        entity controller form crud \
-        check phpstan rector rector-fix cs cs-fix test qa
+.PHONY: help watch phpstan rector rector-fix cs cs-fix test qa
 
 ## —— Aide ———————————————————————————————————————————————
 help: ## Affiche cette aide
