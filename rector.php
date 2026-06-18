@@ -15,4 +15,8 @@ return RectorConfig::configure()
         SetList::DEAD_CODE,
         SetList::TYPE_DECLARATION,
     ])
-    ->withImportNames(removeUnusedImports: true);
+    // importShortClasses: false → ne pas importer les classes du namespace global
+    // (DateTimeImmutable, etc.). On les laisse pleinement qualifiées (\DateTimeImmutable),
+    // pour rester cohérent avec la convention @Symfony de php-cs-fixer (sinon les deux
+    // outils se contredisent en boucle sur les `use`).
+    ->withImportNames(importShortClasses: false, removeUnusedImports: true);

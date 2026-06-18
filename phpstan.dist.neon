@@ -4,3 +4,11 @@ parameters:
         - src
     excludePaths:
         - src/Kernel.php
+    ignoreErrors:
+        # L'UUID des entités est assigné par le générateur Doctrine (réflexion),
+        # invisible pour PHPStan. Le type `?Uuid` reste nécessaire : l'id vaut
+        # null tant que l'entité n'a pas été persistée (flush). Faux positif ciblé.
+        -
+            identifier: property.unusedType
+            message: '#::\$id \(Symfony\\Component\\Uid\\Uuid\|null\) is never assigned#'
+            path: src/Entity
