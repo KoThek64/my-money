@@ -1,0 +1,125 @@
+name: Time Report
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  time-report:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calcul du temps (PR + projet)
+        id: time
+        run: |
+          parse_time() {
+            local total=0
+            while IFS= read -r line; do
+              if [[ "$line" =~ @([0-9]+)[Hh]([0-9]+)[Mm] ]]; then
+                total=$(( total + ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
+              elif [[ "$line" =~ @([0-9]+)[Hh]([0-9]+) ]]; then
+                total=$(( total + ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
+              elif [[ "$line" =~ @([0-9]+)[Hh] ]]; then
+                total=$(( total + ${BASH_REMATCH[1]} * 60 ))
+              elif [[ "$line" =~ @([0-9]+)[Mm] ]]; then
+                total=$(( total + ${BASH_REMATCH[1]} ))
+              fi
+            done
+            echo $total
+          }
+
+          format_time() {
+            local m=$1
+            echo "$(( m / 60 ))h$(printf '%02d' $(( m % 60 )))m"
+          }
+
+          # Temps de la PR (commits entre base et HEAD)
+          pr_minutes=$(git log origin/${{ github.base_ref }}..HEAD --pretty=format:"%B" | parse_time)
+
+          # Temps total du projet (tous les commits)
+          total_minutes=$(git log --pretty=format:"%B" | parse_time)
+
+          echo "pr_display=$(format_time $pr_minutes)" >> $GITHUB_OUTPUT
+          echo "total_display=$(format_time $total_minutes)" >> $GITHUB_OUTPUT
+
+          # Détail par issue sur la PR
+          detail=""
+          declare -A issue_map
+          while IFS= read -r line; do
+            mins=0
+            if [[ "$line" =~ @([0-9]+)[Hh]([0-9]+)[Mm] ]]; then
+              mins=$(( ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
+            elif [[ "$line" =~ @([0-9]+)[Hh]([0-9]+) ]]; then
+              mins=$(( ${BASH_REMATCH[1]} * 60 + ${BASH_REMATCH[2]} ))
+            elif [[ "$line" =~ @([0-9]+)[Hh] ]]; then
+              mins=$(( ${BASH_REMATCH[1]} * 60 ))
+            elif [[ "$line" =~ @([0-9]+)[Mm] ]]; then
+              mins=${BASH_REMATCH[1]}
+            fi
+            if [[ $mins -gt 0 && "$line" =~ \#([0-9]+) ]]; then
+              issue="#${BASH_REMATCH[1]}"
+              issue_map[$issue]=$(( ${issue_map[$issue]:-0} + mins ))
+            fi
+          done < <(git log origin/${{ github.base_ref }}..HEAD --pretty=format:"%B")
+
+          for issue in $(echo "${!issue_map[@]}" | tr ' ' '\n' | sort -V); do
+            m=${issue_map[$issue]}
+            detail="${detail}| ${issue} | $(format_time $m) |\n"
+          done
+          echo "detail<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$detail" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Poster le rapport sur la PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prTime    = '${{ steps.time.outputs.pr_display }}';
+            const totalTime = '${{ steps.time.outputs.total_display }}';
+            const detail    = `${{ steps.time.outputs.detail }}`;
+
+            let body = `## ⏱️ Rapport de temps\n\n`;
+            body += `| | Temps |\n|---|---|\n`;
+            body += `| 🔀 Cette PR | **${prTime}** |\n`;
+            body += `| 📦 Projet total | **${totalTime}** |\n`;
+
+            if (detail.trim()) {
+              body += `\n<details><summary>Détail par issue</summary>\n\n`;
+              body += `| Issue | Temps |\n|---|---|\n`;
+              body += detail;
+              body += `\n</details>`;
+            }
+
+            // Cherche un commentaire existant pour le mettre à jour plutôt que d'en créer un nouveau
+            const comments = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const existing = comments.data.find(c =>
+              c.user.login === 'github-actions[bot]' && c.body.includes('⏱️ Rapport de temps')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
