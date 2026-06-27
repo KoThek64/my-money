@@ -1,0 +1,46 @@
+name: Sync dev ← master
+
+# Après chaque fusion d'une PR dans master, réaligne dev sur master.
+# Indispensable avec « Rebase and merge » : la fusion recalcule les SHA,
+# ce qui fait diverger dev. Ce job remet dev au niveau de master.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+# Un seul réalignement à la fois
+concurrency:
+  group: sync-dev
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (historique complet)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Réaligner dev sur master
+        run: |
+          # Pas de branche dev → rien à faire
+          if ! git fetch origin dev; then
+            echo "::notice::Pas de branche dev, rien à réaligner."
+            exit 0
+          fi
+
+          # Garde-fou : si dev contient du contenu ABSENT de master, c'est du
+          # travail non encore fusionné → on n'écrase rien et on prévient.
+          if ! git diff --quiet origin/master origin/dev; then
+            echo "::warning::dev contient du contenu non présent dans master — réalignement ignoré pour ne rien perdre."
+            exit 0
+          fi
+
+          # dev a exactement le même contenu que master (cas après merge) :
+          # on le force au niveau de master en vérifiant qu'il n'a pas bougé.
+          git push --force-with-lease="dev:$(git rev-parse origin/dev)" \
+                   origin "HEAD:refs/heads/dev"
+          echo "dev réaligné sur master ($(git rev-parse --short HEAD))."
