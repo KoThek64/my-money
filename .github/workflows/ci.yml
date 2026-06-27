@@ -1,0 +1,92 @@
+name: CI
+
+# Stratégie de branches : master ← dev
+#   - on code sur `dev`, puis on ouvre une PR `dev → master`
+#   - la CI valide chaque PR vers master (le garde-fou avant fusion)
+#   - elle tourne aussi à chaque push sur dev pour un retour en continu
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master, dev]
+
+# Annule un run en cours si on repousse sur la même branche/PR
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    name: Qualité (cs · phpstan · rector · tests)
+    runs-on: ubuntu-latest
+
+    # Base de données jetable pour les tests (miroir de la prod : Postgres 16)
+    services:
+      database:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: app_test
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      APP_ENV: test
+      DATABASE_URL: "postgresql://app:app@127.0.0.1:5432/app_test?serverVersion=16&charset=utf8"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, intl, pdo_pgsql, pgsql
+          coverage: none
+          tools: composer:v2
+
+      - name: Valider composer.json / composer.lock
+        run: composer validate --strict
+
+      - name: Cache des dépendances Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      # --no-scripts : la QA (cs/phpstan/rector/phpunit) n'a pas besoin des assets
+      # compilés ni du cache warmup → install plus rapide et plus robuste.
+      - name: Installer les dépendances
+        run: composer install --no-progress --prefer-dist --no-scripts
+
+      # Les étapes suivantes tournent toutes même si l'une échoue (!cancelled()),
+      # pour voir tous les problèmes d'un coup ; le job échoue si l'une a échoué.
+      - name: Coding standards (php-cs-fixer)
+        if: ${{ !cancelled() }}
+        run: php vendor/bin/php-cs-fixer fix --dry-run --diff
+
+      - name: Analyse statique (PHPStan)
+        if: ${{ !cancelled() }}
+        run: php vendor/bin/phpstan analyse --no-progress
+
+      - name: Refactos proposées (Rector)
+        if: ${{ !cancelled() }}
+        run: php vendor/bin/rector process --dry-run
+
+      - name: Préparer la base de test
+        if: ${{ !cancelled() }}
+        run: |
+          php bin/console doctrine:database:create --if-not-exists --no-interaction
+          php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+      - name: Tests (PHPUnit)
+        if: ${{ !cancelled() }}
+        run: php bin/phpunit

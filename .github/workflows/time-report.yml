@@ -2,7 +2,7 @@ name: Time Report
 
 on:
   pull_request:
-    branches: [main]
+    branches: [master]
     types: [opened, synchronize, reopened]
 
 jobs:
