@@ -3,12 +3,9 @@ name: CI
 # Stratégie de branches : master ← dev
 #   - on code sur `dev`, puis on ouvre une PR `dev → master`
 #   - la CI valide chaque PR vers master (le garde-fou avant fusion)
-#   - elle tourne aussi à chaque push sur dev pour un retour en continu
 on:
   pull_request:
     branches: [master]
-  push:
-    branches: [master, dev]
 
 # Annule un run en cours si on repousse sur la même branche/PR
 concurrency:
@@ -56,7 +53,7 @@ jobs:
         run: composer validate --strict
 
       - name: Cache des dépendances Composer
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.composer/cache
           key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
