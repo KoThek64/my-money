@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'home.title'|trans }} — {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'app.name'|trans }}</h1>
+
+    {# Route protégée par access_control : on est forcément connecté ici. #}
+    <p>{{ 'home.logged_in_as'|trans }} <strong>{{ app.user.userIdentifier }}</strong></p>
+    <p>{{ 'home.roles'|trans }} {{ app.user.roles|join(', ') }}</p>
+
+    <a href="{{ path('app_logout') }}">{{ 'home.logout'|trans }}</a>
+{% endblock %}

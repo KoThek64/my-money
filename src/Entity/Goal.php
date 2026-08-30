@@ -11,7 +11,10 @@ use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: GoalRepository::class)]
-#[ORM\UniqueConstraint(columns: ['user_id', 'type', 'category_id'])]
+// RG-10 — un seul objectif par portée. Deux index partiels plutôt qu'un
+// `NULLS NOT DISTINCT`, que Doctrine ne sait pas régénérer.
+#[ORM\UniqueConstraint(name: 'uniq_goal_scope_with_category', columns: ['user_id', 'type', 'category_id'], options: ['where' => '(category_id IS NOT NULL)'])]
+#[ORM\UniqueConstraint(name: 'uniq_goal_scope_without_category', columns: ['user_id', 'type'], options: ['where' => '(category_id IS NULL)'])]
 #[ORM\HasLifecycleCallbacks]
 class Goal implements OwnedByUser
 {
@@ -24,7 +27,7 @@ class Goal implements OwnedByUser
     private ?Uuid $id = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?User $user = null;
 
     #[ORM\Column(enumType: GoalScopeEnum::class)]

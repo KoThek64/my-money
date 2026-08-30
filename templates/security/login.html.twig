@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'login.title'|trans }} — {{ 'app.name'|trans }}{% endblock %}
+
+{% block body %}
+    <h1>{{ 'login.title'|trans }}</h1>
+
+    {% if error %}
+        <p class="form-error">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+    {% endif %}
+
+    {# Pas de cas « déjà connecté » : le contrôleur redirige vers l'accueil. #}
+
+    <form method="post">
+        <div>
+            <label for="username">{{ 'login.email'|trans }}</label>
+            <input type="email" value="{{ last_username }}" name="_username" id="username" autocomplete="email" required autofocus>
+        </div>
+
+        <div>
+            <label for="password">{{ 'login.password'|trans }}</label>
+            <input type="password" name="_password" id="password" autocomplete="current-password" required>
+        </div>
+
+        <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+
+        <button type="submit">{{ 'login.submit'|trans }}</button>
+    </form>
+
+    <p>{{ 'login.no_account'|trans }} <a href="{{ path('app_register') }}">{{ 'login.register_link'|trans }}</a></p>
+{% endblock %}

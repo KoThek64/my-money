@@ -7,10 +7,11 @@ namespace App\Interface;
 use App\Entity\User;
 
 /**
- * Implémentée par toute entité rattachée à un utilisateur.
- * Point d'accroche de l'isolation des comptes (SQLFilter soft-delete, voters, etc.).
+ * Entité rattachée à un utilisateur : point d'accroche de l'isolation (RG-1).
  */
 interface OwnedByUser
 {
     public function getUser(): ?User;
+
+    public function setUser(?User $user): static;
 }

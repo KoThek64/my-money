@@ -1,0 +1,48 @@
+app:
+    name: My Money
+
+nav:
+    home: Accueil
+    login: Connexion
+    logout: Déconnexion
+    register: Inscription
+
+home:
+    title: Accueil
+    logged_in_as: Connecté en tant que
+    roles: 'Rôles :'
+    logout: Se déconnecter
+
+registration:
+    title: Inscription
+    email: Email
+    password: Mot de passe
+    agree_terms: J'accepte les conditions d'utilisation
+    submit: Créer mon compte
+    already_registered: Déjà un compte ?
+    login_link: Se connecter
+    success: Compte créé, tu peux maintenant te connecter.
+
+category:
+    default:
+        groceries: Courses
+        rent: Loyer
+        fuel: Essence
+        transport: Transports
+        restaurant: Restaurant
+        leisure: Loisirs
+        health: Santé
+        subscriptions: Abonnements
+        other_expense: Autres dépenses
+        salary: Salaire
+        bonus: Prime
+        refund: Remboursement
+        other_income: Autres revenus
+
+login:
+    title: Connexion
+    email: Email
+    password: Mot de passe
+    submit: Se connecter
+    no_account: Pas encore de compte ?
+    register_link: Créer un compte
