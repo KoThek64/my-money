@@ -19,6 +19,17 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                enable_csrf: true
+            # Freine le bourrinage sur /login (5 essais, puis fenêtre glissante).
+            login_throttling:
+                max_attempts: 5
+            logout:
+                path: app_logout
+                # Sans cible explicite on retomberait sur `/`, protégé, qui renvoie ici.
+                target: app_login
 
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
@@ -27,9 +38,13 @@ security:
             # switch_user: true
 
     # Note: Only the *first* matching rule is applied
+    #
+    # RG-1 — deny by default : une nouvelle route est protégée d'office,
+    # c'est l'ouvrir qui demande un geste conscient.
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/register$, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:

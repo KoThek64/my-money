@@ -7,9 +7,8 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Filter\SQLFilter;
 
 /**
- * Masque partout les entités SoftDeletable dont deletedAt IS NOT NULL (RG-7).
- * Activé par défaut (cf. config/packages/doctrine.yaml) ; à désactiver
- * uniquement sur l'écran Corbeille : $em->getFilters()->disable('soft_delete').
+ * Masque les entités SoftDeletable dont deletedAt IS NOT NULL (RG-7).
+ * Désactivé uniquement sur l'écran Corbeille.
  */
 final class SoftDeleteFilter extends SQLFilter
 {

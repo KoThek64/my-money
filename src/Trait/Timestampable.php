@@ -5,11 +5,8 @@ namespace App\Trait;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Horodatage partagé : createdAt (posé à la création) + updatedAt (à chaque modification).
- * À utiliser sur Transaction / Recurrence / Goal.
- *
- * L'entité qui l'utilise DOIT être annotée #[ORM\HasLifecycleCallbacks]
- * pour que les callbacks PrePersist / PreUpdate soient déclenchés.
+ * Horodatage partagé (Transaction / Recurrence / Goal).
+ * L'entité DOIT porter #[ORM\HasLifecycleCallbacks], sinon createdAt reste null.
  */
 trait Timestampable
 {

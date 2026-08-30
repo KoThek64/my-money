@@ -1,0 +1,11 @@
+user:
+    email:
+        not_blank: Merci de saisir une adresse email
+        invalid: Cette adresse email n'est pas valide
+        already_used: Un compte existe déjà avec cette adresse email
+    password:
+        not_blank: Merci de saisir un mot de passe
+        too_short: 'Le mot de passe doit contenir au moins {{ limit }} caractères'
+        too_weak: 'Ce mot de passe est trop simple. Allonge-le, ou mélange lettres, chiffres et symboles.'
+    terms:
+        must_agree: Tu dois accepter les conditions d'utilisation.
