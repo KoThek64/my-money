@@ -23,7 +23,7 @@ define title
 endef
 
 .DEFAULT_GOAL := help
-.PHONY: help watch phpstan rector rector-fix cs cs-fix test qa
+.PHONY: help watch phpstan rector rector-fix cs cs-fix test qa sync hooks
 
 ## —— Aide ———————————————————————————————————————————————
 help: ## Affiche cette aide
@@ -60,6 +60,24 @@ cs-fix: ## Corrige le style du code
 test: ## Lance les tests
 	$(call title,🧪  Tests — PHPUnit)
 	$(PHP) bin/phpunit
+
+## —— Git ————————————————————————————————————————————————
+hooks: ## Active les hooks git du dépôt (à refaire après chaque clone)
+	$(call title,🪝  Git — activation des hooks)
+	git config core.hooksPath .githooks
+	@printf "\n$(GREEN)✅  Hooks actifs : $$(ls .githooks | tr '\n' ' ')$(NC)\n"
+
+sync: ## Réaligne master et dev sur le remote (après un « rebase and merge »)
+	$(call title,🔄  Git — réalignement de master et dev)
+	@if [ -n "$$(git status --porcelain --untracked-files=no)" ]; then \
+		printf "$(RED)✖  Travail non commité : commit ou stash avant de synchroniser.$(NC)\n"; \
+		git status --short; \
+		exit 1; \
+	fi
+	git fetch origin --prune
+	git switch master && git merge --ff-only origin/master
+	git switch dev && git reset --hard origin/dev
+	@printf "\n$(GREEN)✅  master et dev alignés sur le remote$(NC)\n"
 
 qa: cs phpstan rector test ## Lance tous les contrôles qualité (style + analyse + rector + tests)
 	@printf "\n$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
