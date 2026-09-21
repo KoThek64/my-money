@@ -16,6 +16,11 @@ doctrine:
             soft_delete:
                 class: App\Doctrine\Filter\SoftDeleteFilter
                 enabled: true
+            owner:
+                class: App\Doctrine\Filter\OwnerFilter
+                # Armé par l'OwnerFilterListener : hors requête HTTP (console,
+                # fixtures, migrations) il n'y a pas d'utilisateur à filtrer.
+                enabled: false
         identity_generation_preferences:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: true
