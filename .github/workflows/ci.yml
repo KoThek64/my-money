@@ -72,7 +72,7 @@ jobs:
 
       - name: Analyse statique (PHPStan)
         if: ${{ !cancelled() }}
-        run: php vendor/bin/phpstan analyse --no-progress
+        run: php vendor/bin/phpstan analyse --no-progress --memory-limit=1G
 
       - name: Refactos proposées (Rector)
         if: ${{ !cancelled() }}

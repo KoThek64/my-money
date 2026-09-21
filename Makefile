@@ -39,7 +39,7 @@ watch: ## Compile le SCSS en continu (à laisser tourner pendant le dev)
 ## —— Qualité de code ————————————————————————————————————
 phpstan: ## Analyse statique (PHPStan)
 	$(call title,🔍  PHPStan — analyse statique)
-	$(PHP) vendor/bin/phpstan analyse
+	$(PHP) vendor/bin/phpstan analyse --memory-limit=1G
 
 rector: ## Montre les refactos proposées (sans rien changer)
 	$(call title,♻️  Rector — refactos proposées (dry-run))
