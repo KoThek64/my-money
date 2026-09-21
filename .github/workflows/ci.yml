@@ -59,8 +59,8 @@ jobs:
           key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
           restore-keys: composer-${{ runner.os }}-
 
-      # --no-scripts : la QA (cs/phpstan/rector/phpunit) n'a pas besoin des assets
-      # compilés ni du cache warmup → install plus rapide et plus robuste.
+      # --no-scripts : pas de cache warmup ni d'assets à l'install → plus rapide
+      # et plus robuste. Le seul asset dont les tests dépendent est buildé plus bas.
       - name: Installer les dépendances
         run: composer install --no-progress --prefer-dist --no-scripts
 
@@ -83,6 +83,12 @@ jobs:
         run: |
           php bin/console doctrine:database:create --if-not-exists --no-interaction
           php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+      # base.html.twig charge le CSS compilé : sans lui, tout test fonctionnel
+      # casse au rendu. Les scripts Composer étant coupés, on le build ici.
+      - name: Compiler le SCSS
+        if: ${{ !cancelled() }}
+        run: php bin/console sass:build
 
       - name: Tests (PHPUnit)
         if: ${{ !cancelled() }}
