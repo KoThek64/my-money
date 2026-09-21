@@ -84,11 +84,14 @@ jobs:
           php bin/console doctrine:database:create --if-not-exists --no-interaction
           php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
-      # base.html.twig charge le CSS compilé : sans lui, tout test fonctionnel
-      # casse au rendu. Les scripts Composer étant coupés, on le build ici.
-      - name: Compiler le SCSS
+      # base.html.twig charge les assets : sans eux, tout test fonctionnel casse
+      # au rendu. assets/vendor n'est pas versionné et --no-scripts coupe les
+      # deux commandes que l'install ferait normalement — d'où ces deux lignes.
+      - name: Préparer les assets
         if: ${{ !cancelled() }}
-        run: php bin/console sass:build
+        run: |
+          php bin/console importmap:install
+          php bin/console sass:build
 
       - name: Tests (PHPUnit)
         if: ${{ !cancelled() }}
