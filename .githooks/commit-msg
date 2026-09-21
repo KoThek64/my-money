@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Valide le message de commit : convention de sujet + tag de temps rattaché à
+# une issue, seul format que time-report.yml sait additionner.
+set -euo pipefail
+
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+message_file="$1"
+
+# Les lignes de commentaire ne partent pas dans le message final.
+message="$(grep -v '^#' "$message_file" || true)"
+subject="$(printf '%s\n' "$message" | head -n1)"
+
+# Merge, revert et fixup sont générés par git : rien à valider.
+case "$subject" in
+    Merge*|Revert*|fixup!*|squash!*) exit 0 ;;
+esac
+
+# Un message vide fait déjà avorter le commit côté git.
+[ -z "${subject// /}" ] && exit 0
+
+types='feat|fix|ci|build|test|docs|refactor|perf|style|chore'
+# @30m, @2h, @1h30 ou @1h30m — les quatre formes que parse time-report.yml.
+time_tag='@[0-9]+([Hh]([0-9]+[Mm]?)?|[Mm])'
+
+errors=()
+
+if ! [[ "$subject" =~ ^($types)(\([a-zA-Z0-9._/-]+\))?!?:\ .+ ]]; then
+    errors+=("Le sujet ne suit pas la convention : <type>(<scope>): <description>
+    Types acceptés : ${types//|/, }
+    Reçu : \"$subject\"")
+fi
+
+# Le détail par issue de time-report lit chaque ligne isolément : le tag de
+# temps et la référence d'issue doivent être sur la MÊME ligne pour être liés.
+# Closes, Closes:, Fixes… — GitHub accepte ces variantes, autant les tolérer.
+if ! printf '%s\n' "$message" | grep -qE "(Closes|Fixes|Resolves|Refs):? #[0-9]+ $time_tag"; then
+    if printf '%s\n' "$message" | grep -qE "$time_tag"; then
+        errors+=("Le tag de temps n'est pas rattaché à une issue.
+    Attendu sur une même ligne : \"Closes #12 @30m\" ou \"Refs #12 @30m\"")
+    else
+        errors+=("Il manque le tag de temps — chaque commit doit en porter un.
+    Terminer le message par : \"Closes #12 @30m\" ou \"Refs #12 @1h30m\"")
+    fi
+fi
+
+if printf '%s\n' "$message" | grep -qi '^Co-Authored-By:'; then
+    errors+=("Trailer Co-Authored-By interdit sur ce projet.")
+fi
+
+if [ ${#errors[@]} -gt 0 ]; then
+    printf "\n${RED}✖  Message de commit refusé${NC}\n\n"
+    for error in "${errors[@]}"; do
+        printf "  ${RED}•${NC} %b\n\n" "$error"
+    done
+    printf "  ${GREEN}Exemple valide :${NC}\n"
+    printf "    feat(category): archive une catégorie utilisée\n\n"
+    printf "    Suppression réelle si inutilisée, archivage sinon.\n\n"
+    printf "    Closes #3 @45m\n\n"
+    exit 1
+fi
+
+if [ "${#subject}" -gt 72 ]; then
+    printf "\n${YELLOW}⚠  Sujet de ${#subject} caractères (72 conseillés) — commit accepté.${NC}\n\n"
+fi
+
+exit 0
