@@ -6,7 +6,7 @@ namespace App\Tests\Functional;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use App\Service\DefaultCategoryInstaller;
+use App\Service\Category\DefaultCategoryInstaller;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;

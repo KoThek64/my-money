@@ -7,7 +7,7 @@ namespace App\Tests\Integration;
 use App\Entity\Category;
 use App\Entity\User;
 use App\Enum\MovementKindEnum;
-use App\Service\DefaultCategoryInstaller;
+use App\Service\Category\DefaultCategoryInstaller;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
