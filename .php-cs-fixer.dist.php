@@ -12,6 +12,8 @@ $finder = new PhpCsFixer\Finder()
 return new PhpCsFixer\Config()
     ->setRules([
         '@Symfony' => true,
+        // Si une signature/un appel est sur plusieurs lignes : un argument par ligne
+        'method_argument_space' => ['on_multiline' => 'ensure_fully_multiline'],
     ])
     ->setFinder($finder)
 ;
