@@ -53,7 +53,7 @@ final class CategoryController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->service->create($user, $category);
 
-            return $this->redirectToRoute('app_home'); // TODO("Ajouter la route qu'il faut")
+            return $this->redirectToRoute('app_home');
         }
 
         return $this->render('category/create.html.twig', [
@@ -70,7 +70,7 @@ final class CategoryController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->service->edit();
 
-            return $this->redirectToRoute('app_home'); // TODO("Ajouter la route qu'il faut")
+            return $this->redirectToRoute('app_home');
         }
 
         return $this->render('category/edit.html.twig', [
