@@ -6,12 +6,14 @@ namespace App\Service\Category;
 
 use App\Entity\Category;
 use App\Entity\User;
+use App\Repository\CategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 readonly class CrudCategoryService
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private CategoryRepository $repository,
     ) {
     }
 
@@ -32,9 +34,9 @@ readonly class CrudCategoryService
 
     public function delete(Category $category): void
     {
-        if (0 !== $category->getTransactions()->count()) {
+        // Utilisée : les FK sans cascade bloqueraient la suppression.
+        if ($this->repository->isUsed($category)) {
             $category->setArchivedAt(new \DateTimeImmutable());
-            $this->em->persist($category);
         } else {
             $this->em->remove($category);
         }

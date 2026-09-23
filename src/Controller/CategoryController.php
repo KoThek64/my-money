@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use App\Entity\Category;
 use App\Entity\User;
 use App\Form\CategoryEditType;
@@ -10,9 +9,11 @@ use App\Form\CategoryType;
 use App\Repository\CategoryRepository;
 use App\Service\Category\CrudCategoryService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
 
 #[Route('/category', name: 'app_category_')]
 final class CategoryController extends AbstractController
@@ -79,7 +80,8 @@ final class CategoryController extends AbstractController
         ]);
     }
 
-    #[Route('/delete/{id}', name: 'delete')]
+    #[Route('/delete/{id}', name: 'delete', methods: ['POST'])]
+    #[IsCsrfTokenValid('delete-category')]
     public function delete(Category $category): RedirectResponse
     {
         $this->service->delete($category);
