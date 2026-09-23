@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use App\Entity\Category;
 use App\Entity\User;
 use App\Form\CategoryEditType;
@@ -79,7 +80,7 @@ final class CategoryController extends AbstractController
     }
 
     #[Route('/delete/{id}', name: 'delete')]
-    public function delete(Category $category): Response
+    public function delete(Category $category): RedirectResponse
     {
         $this->service->delete($category);
 
