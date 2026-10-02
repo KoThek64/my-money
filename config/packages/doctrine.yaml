@@ -35,8 +35,9 @@ doctrine:
 when@test:
     doctrine:
         dbal:
-            # "TEST_TOKEN" is typically set by ParaTest
-            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+            # Pas de %env(TEST_TOKEN)% : Infection le pose à 1 sur chaque mutant, qui
+            # chercherait alors une base « _test1 » inexistante et échouerait à tort.
+            dbname_suffix: '_test'
 
 when@prod:
     doctrine:

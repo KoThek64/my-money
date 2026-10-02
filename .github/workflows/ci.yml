@@ -124,14 +124,16 @@ jobs:
 
       # Pas de !cancelled() sur les mutations : elles n'ont de sens que si tout
       # le reste est vert.
+      # Sur dev, sans seuil : du code dont le test est encore « todo » laisse
+      # forcément des survivants. L'étape les affiche, elle ne bloque pas.
       - name: Tests de mutation (Infection) — lignes modifiées depuis master
         if: ${{ github.event_name == 'push' }}
         run: >-
           php vendor/bin/infection
           --git-diff-lines --git-diff-base=origin/master
-          --min-msi=100 --min-covered-msi=100 --ignore-msi-with-no-mutations
           --no-progress --show-mutations
 
+      # Vers master, aucun survivant toléré.
       - name: Tests de mutation (Infection) — tout le code
         if: ${{ github.event_name == 'pull_request' }}
         run: >-

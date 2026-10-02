@@ -121,6 +121,20 @@ final class AuthenticationTest extends WebTestCase
         );
     }
 
+    public function testSuccessfulRegistrationIsConfirmedOnTheLoginPage(): void
+    {
+        $crawler = $this->client->request('GET', '/register');
+        $this->client->submit($crawler->selectButton('Créer mon compte')->form([
+            'registration_form[email]' => self::EMAIL,
+            'registration_form[plainPassword]' => self::PASSWORD,
+            'registration_form[agreeTerms]' => true,
+        ]));
+
+        $this->client->followRedirect();
+
+        self::assertSelectorTextContains('body', 'Compte créé, tu peux maintenant te connecter.');
+    }
+
     /**
      * RG-4 — le jeu de catégories de base arrive avec le compte, pas plus tard.
      */
@@ -200,6 +214,16 @@ final class AuthenticationTest extends WebTestCase
         // Acceptés : 12 caractères mêlant les 4 classes, et une passphrase.
         yield '12 caractères, 4 classes' => ['13247780Hm!!', true];
         yield 'passphrase' => ['Corr3ct-H0rse-Battery', true];
+
+        // Bornes de longueur, avec des mots de passe assez variés pour que seule la longueur décide.
+        yield '11 caractères, juste sous le minimum' => ['Xk7!pQ2#vLm', false];
+        yield '4096 caractères, le maximum' => [self::longPassword(4096), true];
+        yield '4097 caractères, juste au-dessus du maximum' => [self::longPassword(4097), false];
+    }
+
+    private static function longPassword(int $length): string
+    {
+        return substr(str_repeat('Corr3ct-H0rse-Battery!', 200), 0, $length);
     }
 
     #[DataProvider('passwordProvider')]
@@ -274,6 +298,8 @@ final class AuthenticationTest extends WebTestCase
         yield 'email vide' => [['registration_form[email]' => ''], 'email'];
         yield 'email invalide' => [['registration_form[email]' => 'pas-une-adresse'], 'email'];
         yield 'CGU non cochées' => [['registration_form[agreeTerms]' => false], 'agreeTerms'];
+        // Longueur et robustesse ignorent une valeur vide : sans NotBlank, elle passerait.
+        yield 'mot de passe vide' => [['registration_form[plainPassword]' => ''], 'plainPassword'];
     }
 
     /**

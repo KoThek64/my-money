@@ -459,6 +459,17 @@ final class CategoryFormTest extends WebTestCase
         self::assertResponseRedirects('/category/show-all');
     }
 
+    #[Group('todo')]
+    public function testShowPageDisplaysTheCategory(): void
+    {
+        $id = $this->createCategory(name: 'Loyer');
+
+        $this->client->request('GET', '/category/show/'.$id);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Loyer');
+    }
+
     /**
      * RG-1.1 — la liste ne montre que les catégories du compte connecté.
      */

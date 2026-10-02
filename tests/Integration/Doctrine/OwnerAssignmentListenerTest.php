@@ -16,6 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\User\InMemoryUser;
 
 /**
  * RG-1.3 — le propriétaire est posé par le listener, jamais par le formulaire.
@@ -94,6 +95,22 @@ final class OwnerAssignmentListenerTest extends KernelTestCase
         $this->entityManager->flush();
 
         self::assertSame($other->getId(), $category->getUser()?->getId());
+    }
+
+    /**
+     * Seul un compte de l'application peut posséder une entité : un autre type
+     * d'utilisateur connecté est ignoré, pas affecté de force.
+     */
+    public function testForeignUserObjectIsNotAssigned(): void
+    {
+        $foreigner = new InMemoryUser('admin', null);
+        self::getContainer()->get('security.token_storage')
+            ->setToken(new UsernamePasswordToken($foreigner, 'main', $foreigner->getRoles()));
+
+        $category = $this->newCategory();
+        $this->entityManager->persist($category);
+
+        self::assertNull($category->getUser());
     }
 
     public function testPersistWithoutLoggedInUserIsRejectedByTheDatabase(): void

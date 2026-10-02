@@ -21,6 +21,22 @@
         "summary": "var/infection/summary.log"
     },
     "mutators": {
-        "@default": true
+        "@default": true,
+        // Libellés, attributs HTML et data_class des formulaires : rien de métier à vérifier.
+        // Ciblé par ligne : retirer une contrainte de validation reste détecté.
+        "ArrayItemRemoval": {
+            "ignoreSourceCodeByRegex": [".*'(label|attr|data_class)' =>.*"]
+        },
+        "MethodCallRemoval": {
+            "ignoreSourceCodeByRegex": [".*\\$resolver->setDefaults\\(.*"]
+        },
+        // Sous-requête EXISTS : sélectionner l'entité ou son id donne le même résultat.
+        "ConcatOperandRemoval": {
+            "ignore": ["App\\Repository\\CategoryRepository::referencingRows"]
+        },
+        // Casts défensifs pour un compte sans email ni mot de passe, impossible une fois en base.
+        "CastString": {
+            "ignore": ["App\\Entity\\User"]
+        }
     }
 }
