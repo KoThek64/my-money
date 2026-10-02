@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Entity\Category;
+use App\Entity\Goal;
+use App\Entity\Recurrence;
+use App\Entity\Transaction;
 use App\Entity\User;
+use App\Enum\GoalScopeEnum;
 use App\Enum\MovementKindEnum;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
@@ -97,5 +102,53 @@ final class OwnerAssignmentListenerTest extends KernelTestCase
 
         $this->expectException(NotNullConstraintViolationException::class);
         $this->entityManager->flush();
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Category): (Transaction|Recurrence|Goal)}>
+     */
+    public static function otherOwnedEntities(): iterable
+    {
+        yield 'transaction' => [static fn (Category $category): Transaction => new Transaction()
+            ->setCategory($category)
+            ->setAmount(1000)
+            ->setLabel('Supermarché')
+            ->setDate(new \DateTimeImmutable()),
+        ];
+
+        yield 'récurrence' => [static fn (Category $category): Recurrence => new Recurrence()
+            ->setCategory($category)
+            ->setAmount(1000)
+            ->setLabel('Abonnement')
+            ->setDayOfMonth(5),
+        ];
+
+        yield 'objectif' => [static fn (Category $category): Goal => new Goal()
+            ->setCategory($category)
+            ->setType(GoalScopeEnum::DEPENSE_CATEGORIE)
+            ->setAmount(1000),
+        ];
+    }
+
+    /**
+     * Le listener s'accroche à l'interface OwnedByUser : pas seulement aux catégories.
+     *
+     * @param \Closure(Category): (Transaction|Recurrence|Goal) $factory
+     */
+    #[DataProvider('otherOwnedEntities')]
+    public function testOwnerIsAssignedOnEveryOwnedEntity(\Closure $factory): void
+    {
+        $user = $this->createUser('proprietaire@my-money.test');
+        $this->login($user);
+
+        $category = $this->newCategory();
+        $entity = $factory($category);
+        self::assertNull($entity->getUser());
+
+        $this->entityManager->persist($category);
+        $this->entityManager->persist($entity);
+        $this->entityManager->flush();
+
+        self::assertSame($user->getId(), $entity->getUser()?->getId());
     }
 }

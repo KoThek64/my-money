@@ -50,7 +50,7 @@ class GoalTest extends TestCase
         $category->setName('Courses')
             ->setType(MovementKindEnum::DEPENSE)
             ->setIcon('icon')
-            ->setColor('color')
+            ->setColor('#000000')
             ->setUser($this->user);
 
         $this->goal->setType(GoalScopeEnum::DEPENSE_CATEGORIE)
@@ -66,11 +66,10 @@ class GoalTest extends TestCase
         $category->setName('Courses')
             ->setType(MovementKindEnum::DEPENSE)
             ->setIcon('icon')
-            ->setColor('color')
+            ->setColor('#000000')
             ->setUser($this->user);
         $this->goal->setCategory($category);
 
-        // onDelete: SET NULL — l'objectif survit à la suppression de sa catégorie.
         $this->goal->setCategory(null);
 
         $this->assertNull($this->goal->getCategory());

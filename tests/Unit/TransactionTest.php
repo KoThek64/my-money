@@ -27,7 +27,7 @@ class TransactionTest extends TestCase
         $this->category->setName('Courses')
             ->setType(MovementKindEnum::DEPENSE)
             ->setIcon('icon')
-            ->setColor('color')
+            ->setColor('#000000')
             ->setUser($this->user);
 
         $this->transaction = new Transaction();
@@ -88,7 +88,6 @@ class TransactionTest extends TestCase
         $this->transaction->setRecurrence($recurrence);
         $this->assertSame($recurrence, $this->transaction->getRecurrence());
 
-        // onDelete: SET NULL — la transaction survit à la suppression de sa récurrence.
         $this->transaction->setRecurrence(null);
         $this->assertNull($this->transaction->getRecurrence());
     }
@@ -99,7 +98,7 @@ class TransactionTest extends TestCase
         $other->setName('Loisirs')
             ->setType(MovementKindEnum::DEPENSE)
             ->setIcon('icon')
-            ->setColor('color')
+            ->setColor('#000000')
             ->setUser($this->user);
 
         $this->transaction->setCategory($other);

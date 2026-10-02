@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\Category;
+use App\Entity\Goal;
+use App\Entity\Recurrence;
+use App\Entity\Transaction;
 use App\Entity\User;
+use App\Enum\GoalScopeEnum;
 use App\Enum\MovementKindEnum;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Uid\Uuid;
@@ -129,5 +134,56 @@ final class OwnerFilterTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         self::assertSame([], $this->entityManager()->getRepository(Category::class)->findAll());
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Category): (Transaction|Recurrence|Goal)}>
+     */
+    public static function otherOwnedEntities(): iterable
+    {
+        yield 'transaction' => [static fn (Category $category): Transaction => new Transaction()
+            ->setCategory($category)
+            ->setAmount(1000)
+            ->setLabel('Supermarché')
+            ->setDate(new \DateTimeImmutable()),
+        ];
+
+        yield 'récurrence' => [static fn (Category $category): Recurrence => new Recurrence()
+            ->setCategory($category)
+            ->setAmount(1000)
+            ->setLabel('Abonnement')
+            ->setDayOfMonth(5),
+        ];
+
+        yield 'objectif' => [static fn (Category $category): Goal => new Goal()
+            ->setCategory($category)
+            ->setType(GoalScopeEnum::DEPENSE_CATEGORIE)
+            ->setAmount(1000),
+        ];
+    }
+
+    /**
+     * Le filtre s'accroche à l'interface OwnedByUser : chaque entité possédée doit en hériter.
+     *
+     * @param \Closure(Category): (Transaction|Recurrence|Goal) $factory
+     */
+    #[DataProvider('otherOwnedEntities')]
+    public function testEveryOwnedEntityIsFiltered(\Closure $factory): void
+    {
+        $alice = $this->createUser('alice@my-money.test');
+        $bob = $this->createUser('bob@my-money.test');
+
+        $mine = $factory($this->createCategory($alice, 'Courses'))->setUser($alice);
+        $theirs = $factory($this->createCategory($bob, 'Loyer'))->setUser($bob);
+        $this->entityManager()->persist($mine);
+        $this->entityManager()->persist($theirs);
+        $this->entityManager()->flush();
+
+        $this->browse('/', $alice);
+
+        $rows = $this->entityManager()->getRepository($mine::class)->findAll();
+
+        self::assertCount(1, $rows);
+        self::assertEquals($mine->getId(), $rows[0]->getId());
     }
 }

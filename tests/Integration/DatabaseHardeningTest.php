@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -12,7 +13,7 @@ use Symfony\Component\Uid\Uuid;
 
 /**
  * Verrouille en base les garanties qu'un `make:migration` à l'aveugle ferait sauter :
- * CHECK amount > 0, CASCADE des FK user_id, unicité des objectifs.
+ * CHECK amount > 0, CASCADE des FK user_id, SET NULL / RESTRICT des autres FK, unicité des objectifs.
  */
 final class DatabaseHardeningTest extends KernelTestCase
 {
@@ -206,5 +207,97 @@ final class DatabaseHardeningTest extends KernelTestCase
 
         self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM goal'));
         self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM category'));
+    }
+
+    private function insertRecurrence(Connection $connection, string $userId, string $categoryId): string
+    {
+        $id = Uuid::v7()->toRfc4122();
+
+        $connection->executeStatement(
+            'INSERT INTO recurrence (id, user_id, category_id, amount, label, day_of_month, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+            [$id, $userId, $categoryId, 75_000, 'Loyer', 5],
+        );
+
+        return $id;
+    }
+
+    private function insertTransaction(Connection $connection, string $userId, string $categoryId, ?string $recurrenceId = null): string
+    {
+        $id = Uuid::v7()->toRfc4122();
+
+        $connection->executeStatement(
+            'INSERT INTO transaction (id, user_id, category_id, recurrence_id, amount, label, date, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
+            [$id, $userId, $categoryId, $recurrenceId, 75_000, 'Loyer de mars'],
+        );
+
+        return $id;
+    }
+
+    /**
+     * RG-6 — supprimer une récurrence ne doit pas emporter l'historique déjà généré.
+     */
+    public function testDeletingARecurrenceKeepsItsOccurrences(): void
+    {
+        $connection = self::connection();
+        $connection->executeStatement('DELETE FROM "user"');
+        $userId = $this->insertUser($connection);
+        $categoryId = $this->insertCategory($connection, $userId);
+        $recurrenceId = $this->insertRecurrence($connection, $userId, $categoryId);
+        $transactionId = $this->insertTransaction($connection, $userId, $categoryId, $recurrenceId);
+
+        $connection->executeStatement('DELETE FROM recurrence WHERE id = ?', [$recurrenceId]);
+
+        self::assertSame(
+            [null],
+            $connection->fetchFirstColumn('SELECT recurrence_id FROM transaction WHERE id = ?', [$transactionId]),
+        );
+    }
+
+    /**
+     * Filet de sécurité : l'appli archive une catégorie ciblée par un objectif, mais
+     * si elle disparaît quand même, l'objectif survit sans catégorie.
+     */
+    public function testDeletingACategoryKeepsItsGoal(): void
+    {
+        $connection = self::connection();
+        $connection->executeStatement('DELETE FROM "user"');
+        $userId = $this->insertUser($connection);
+        $categoryId = $this->insertCategory($connection, $userId);
+        $this->insertGoal($connection, $userId, 'depense_categorie', $categoryId);
+
+        $connection->executeStatement('DELETE FROM category WHERE id = ?', [$categoryId]);
+
+        self::assertSame([null], $connection->fetchFirstColumn('SELECT category_id FROM goal'));
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(self, Connection, string, string): void}>
+     */
+    public static function categoryUsageProvider(): iterable
+    {
+        yield 'transaction' => [static function (self $test, Connection $connection, string $userId, string $categoryId): void {
+            $test->insertTransaction($connection, $userId, $categoryId);
+        }];
+        yield 'récurrence' => [static function (self $test, Connection $connection, string $userId, string $categoryId): void {
+            $test->insertRecurrence($connection, $userId, $categoryId);
+        }];
+    }
+
+    /**
+     * RG-4 — on n'efface jamais une catégorie utilisée : la base le refuse même si l'appli se trompe.
+     *
+     * @param \Closure(self, Connection, string, string): void $usage
+     */
+    #[DataProvider('categoryUsageProvider')]
+    public function testUsedCategoryCannotBeDeleted(\Closure $usage): void
+    {
+        $connection = self::connection();
+        $connection->executeStatement('DELETE FROM "user"');
+        $userId = $this->insertUser($connection);
+        $categoryId = $this->insertCategory($connection, $userId);
+        $usage($this, $connection, $userId, $categoryId);
+
+        $this->expectException(ForeignKeyConstraintViolationException::class);
+        $connection->executeStatement('DELETE FROM category WHERE id = ?', [$categoryId]);
     }
 }

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Unit;
 
 use App\Entity\Category;
+use App\Entity\Goal;
+use App\Entity\Recurrence;
+use App\Entity\Transaction;
 use App\Entity\User;
 use App\Enum\MovementKindEnum;
 use App\Security\Voter\OwnershipVoter;
@@ -13,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\NullToken;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -98,6 +102,37 @@ final class OwnershipVoterTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{class-string<Transaction|Recurrence|Goal>}>
+     */
+    public static function otherOwnedEntities(): iterable
+    {
+        yield 'transaction' => [Transaction::class];
+        yield 'récurrence' => [Recurrence::class];
+        yield 'objectif' => [Goal::class];
+    }
+
+    /**
+     * Le voter s'accroche à l'interface OwnedByUser : pas seulement aux catégories.
+     *
+     * @param class-string<Transaction|Recurrence|Goal> $class
+     */
+    #[DataProvider('otherOwnedEntities')]
+    public function testEveryOwnedEntityIsProtected(string $class): void
+    {
+        $owner = $this->user(self::OWNER_ID);
+        $entity = new $class()->setUser($owner);
+
+        self::assertSame(
+            VoterInterface::ACCESS_GRANTED,
+            $this->voter->vote($this->tokenFor($owner), $entity, [OwnershipVoter::VIEW]),
+        );
+        self::assertSame(
+            VoterInterface::ACCESS_DENIED,
+            $this->voter->vote($this->tokenFor($this->user(self::INTRUDER_ID)), $entity, [OwnershipVoter::VIEW]),
+        );
+    }
+
+    /**
      * Le cas qui compte : deux instances PHP distinctes du même compte, comme
      * après un rechargement depuis la session. Une comparaison par === échouerait.
      */
@@ -140,6 +175,38 @@ final class OwnershipVoterTest extends TestCase
             VoterInterface::ACCESS_DENIED,
             $this->voter->vote(new NullToken(), $category, [OwnershipVoter::VIEW]),
         );
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function refusalProvider(): iterable
+    {
+        yield 'visiteur anonyme' => ['anonymous'];
+        yield 'entité sans propriétaire' => ['no-owner'];
+        yield 'propriétaire non persisté' => ['unpersisted-owner'];
+        yield 'autre compte' => ['intruder'];
+    }
+
+    /**
+     * Le profiler affiche la raison d'un refus : sans elle, un 403 est indébuggable.
+     */
+    #[DataProvider('refusalProvider')]
+    public function testEveryRefusalExplainsItself(string $scenario): void
+    {
+        $owner = $this->user(self::OWNER_ID);
+
+        [$token, $category] = match ($scenario) {
+            'anonymous' => [new NullToken(), $this->categoryOwnedBy($owner)],
+            'no-owner' => [$this->tokenFor($owner), $this->categoryOwnedBy(null)],
+            'unpersisted-owner' => [$this->tokenFor($owner), $this->categoryOwnedBy(new User())],
+            'intruder' => [$this->tokenFor($this->user(self::INTRUDER_ID)), $this->categoryOwnedBy($owner)],
+            default => throw new \LogicException($scenario),
+        };
+
+        $vote = new Vote();
+        self::assertSame(VoterInterface::ACCESS_DENIED, $this->voter->vote($token, $category, [OwnershipVoter::VIEW], $vote));
+        self::assertNotEmpty($vote->reasons);
     }
 
     public function testVoterAbstainsOnUnsupportedAttribute(): void

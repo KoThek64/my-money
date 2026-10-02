@@ -10,6 +10,7 @@ use App\Service\Category\DefaultCategoryInstaller;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -33,6 +34,11 @@ final class AuthenticationTest extends WebTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get('doctrine.dbal.default_connection');
         $connection->executeStatement('DELETE FROM "user"');
+
+        // Le compteur de tentatives survit d'un test à l'autre : on repart de zéro.
+        /** @var CacheItemPoolInterface $rateLimiterCache */
+        $rateLimiterCache = self::getContainer()->get('cache.rate_limiter');
+        $rateLimiterCache->clear();
     }
 
     private function createUser(): User
@@ -60,6 +66,30 @@ final class AuthenticationTest extends WebTestCase
         $repository = self::getContainer()->get(UserRepository::class);
 
         return $repository->findOneBy(['email' => self::EMAIL]);
+    }
+
+    private function attemptLogin(string $email, string $password): void
+    {
+        $crawler = $this->client->request('GET', '/login');
+        $this->client->submit($crawler->selectButton('Se connecter')->form([
+            '_username' => $email,
+            '_password' => $password,
+        ]));
+    }
+
+    private function isLoggedIn(): bool
+    {
+        $this->client->request('GET', '/');
+
+        return $this->client->getResponse()->isSuccessful();
+    }
+
+    private function countUsers(): int
+    {
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get('doctrine.dbal.default_connection');
+
+        return (int) $connection->fetchOne('SELECT COUNT(*) FROM "user"');
     }
 
     public function testRegistrationCreatesUserWithHashedPassword(): void
@@ -234,6 +264,141 @@ final class AuthenticationTest extends WebTestCase
 
         // Et surtout : toujours pas de session ouverte.
         self::assertNull(self::getContainer()->get('security.token_storage')->getToken());
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string|bool>, string}>
+     */
+    public static function invalidRegistrations(): iterable
+    {
+        yield 'email vide' => [['registration_form[email]' => ''], 'email'];
+        yield 'email invalide' => [['registration_form[email]' => 'pas-une-adresse'], 'email'];
+        yield 'CGU non cochées' => [['registration_form[agreeTerms]' => false], 'agreeTerms'];
+    }
+
+    /**
+     * @param array<string, string|bool> $override
+     */
+    #[DataProvider('invalidRegistrations')]
+    public function testInvalidRegistrationIsRejected(array $override, string $field): void
+    {
+        $crawler = $this->client->request('GET', '/register');
+        $this->client->submit($crawler->selectButton('Créer mon compte')->form([
+            'registration_form[email]' => self::EMAIL,
+            'registration_form[plainPassword]' => self::PASSWORD,
+            'registration_form[agreeTerms]' => true,
+            ...$override,
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->countUsers());
+        self::assertSelectorExists(\sprintf('li[id^="registration_form_%s_error"]', $field));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, string>}>
+     */
+    public static function crossOriginRequests(): iterable
+    {
+        yield 'Sec-Fetch-Site: cross-site' => [['HTTP_SEC_FETCH_SITE' => 'cross-site']];
+        yield 'Origin étrangère' => [['HTTP_ORIGIN' => 'https://evil.example']];
+    }
+
+    /**
+     * CSRF — une page tierce ne doit pas pouvoir créer un compte : les bons champs, sans jeton.
+     */
+    public function testForgedRegistrationIsRefused(): void
+    {
+        $this->client->request('POST', '/register', ['registration_form' => [
+            'email' => self::EMAIL,
+            'plainPassword' => self::PASSWORD,
+            'agreeTerms' => '1',
+        ]], [], ['HTTP_SEC_FETCH_SITE' => 'cross-site']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->countUsers());
+    }
+
+    /**
+     * CSRF — une page tierce ne doit pas non plus ouvrir une session à l'insu du visiteur.
+     *
+     * @param array<string, string> $server
+     */
+    #[DataProvider('crossOriginRequests')]
+    public function testCrossOriginLoginIsRefused(array $server): void
+    {
+        $this->createUser();
+
+        $this->client->request('POST', '/login', [
+            '_username' => self::EMAIL,
+            '_password' => self::PASSWORD,
+            '_csrf_token' => 'csrf-token',
+        ], [], $server);
+
+        self::assertResponseRedirects('/login');
+        self::assertFalse($this->isLoggedIn());
+    }
+
+    /**
+     * Répondre autrement à un email inconnu permettrait de lister les comptes existants.
+     */
+    public function testUnknownEmailFailsExactlyLikeAWrongPassword(): void
+    {
+        $this->createUser();
+
+        $errors = [];
+        foreach ([self::EMAIL, 'inconnu@my-money.test'] as $email) {
+            $this->attemptLogin($email, 'ce-nest-pas-le-bon-mot-de-passe');
+            self::assertResponseRedirects('/login');
+
+            $errors[] = $this->client->followRedirect()->filter('.form-error')->text();
+        }
+
+        self::assertSame($errors[0], $errors[1]);
+    }
+
+    /**
+     * Après 5 échecs, le compte est gelé : même le bon mot de passe ne passe plus.
+     */
+    public function testSixthAttemptIsRefusedEvenWithTheRightPassword(): void
+    {
+        $this->createUser();
+
+        for ($attempt = 1; $attempt <= 5; ++$attempt) {
+            $this->attemptLogin(self::EMAIL, 'ce-nest-pas-le-bon-mot-de-passe');
+        }
+
+        $this->attemptLogin(self::EMAIL, self::PASSWORD);
+
+        self::assertResponseRedirects('/login');
+        self::assertFalse($this->isLoggedIn());
+    }
+
+    /**
+     * Borne : le 5ᵉ essai est encore écouté.
+     */
+    public function testFifthAttemptStillSucceedsWithTheRightPassword(): void
+    {
+        $this->createUser();
+
+        for ($attempt = 1; $attempt <= 4; ++$attempt) {
+            $this->attemptLogin(self::EMAIL, 'ce-nest-pas-le-bon-mot-de-passe');
+        }
+
+        $this->attemptLogin(self::EMAIL, self::PASSWORD);
+
+        self::assertResponseRedirects('/');
+    }
+
+    public function testLogoutClosesTheSession(): void
+    {
+        $this->client->loginUser($this->createUser());
+        self::assertTrue($this->isLoggedIn());
+
+        $this->client->request('GET', '/logout');
+
+        self::assertResponseRedirects('/login');
+        self::assertFalse($this->isLoggedIn());
     }
 
     /**

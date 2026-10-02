@@ -25,7 +25,7 @@ class RecurrenceTest extends TestCase
         $this->category->setName('Loyer')
             ->setType(MovementKindEnum::DEPENSE)
             ->setIcon('icon')
-            ->setColor('color')
+            ->setColor('#000000')
             ->setUser($this->user);
 
         $this->recurrence = new Recurrence();
