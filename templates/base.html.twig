@@ -36,7 +36,7 @@
 
         {% for label, messages in app.flashes %}
             {% for message in messages %}
-                <p>[{{ label }}] {{ message|trans }}</p>
+                <p>[{{ ('flash.' ~ label)|trans }}] {{ message|trans }}</p>
             {% endfor %}
         {% endfor %}
 

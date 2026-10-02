@@ -1,6 +1,9 @@
 app:
     name: My Money
 
+flash:
+    success: Succès
+
 nav:
     home: Accueil
     login: Connexion
@@ -46,3 +49,12 @@ login:
     submit: Se connecter
     no_account: Pas encore de compte ?
     register_link: Créer un compte
+
+enum:
+    movement_kind:
+        depense: Dépense
+        revenu: Revenu
+    goal_scope:
+        depense_globale: Dépense globale
+        depense_categorie: Dépense catégorie
+        epargne: Épargne
