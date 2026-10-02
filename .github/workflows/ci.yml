@@ -2,8 +2,13 @@ name: CI
 
 # Stratégie de branches : master ← dev
 #   - on code sur `dev`, puis on ouvre une PR `dev → master`
-#   - la CI valide chaque PR vers master (le garde-fou avant fusion)
+#   - push sur dev : contrôle rapide — tests « todo » tolérés, mutation des
+#     seules lignes modifiées par rapport à master
+#   - PR vers master : garde-fou avant fusion — aucun « todo », suite entière,
+#     mutation de tout le code
 on:
+  push:
+    branches: [dev]
   pull_request:
     branches: [master]
 
@@ -14,7 +19,9 @@ concurrency:
 
 jobs:
   qa:
-    name: Qualité (cs · phpstan · rector · tests)
+    # Le nom affiché sur une PR est le check exigé par la protection de master :
+    # le run de dev en porte un autre pour ne jamais le satisfaire à sa place.
+    name: ${{ github.event_name == 'pull_request' && 'Qualité (cs · phpstan · rector · tests)' || 'Qualité dev (cs · phpstan · rector · tests)' }}
     runs-on: ubuntu-latest
 
     # Base de données jetable pour les tests (miroir de la prod : Postgres 16)
@@ -40,13 +47,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # Historique complet : Infection compare les lignes à origin/master.
+          fetch-depth: 0
 
       - name: Installer PHP 8.5
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
           extensions: ctype, iconv, intl, pdo_pgsql, pgsql
-          coverage: none
+          # PCOV : Infection a besoin de la couverture pour cibler les tests.
+          coverage: pcov
           tools: composer:v2
 
       - name: Valider composer.json / composer.lock
@@ -93,6 +104,37 @@ jobs:
           php bin/console importmap:install
           php bin/console sass:build
 
-      - name: Tests (PHPUnit)
-        if: ${{ !cancelled() }}
+      # Un test « todo » décrit un comportement pas encore codé : toléré sur dev,
+      # jamais sur master (Infection les ignore, un oubli passerait inaperçu).
+      - name: Aucun test « todo » vers master
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: |
+          if grep -rn "Group('todo')" tests; then
+            echo "::error::Des tests sont encore marqués « todo » : à coder avant de fusionner vers master."
+            exit 1
+          fi
+
+      - name: Tests (PHPUnit) — dev, hors « todo »
+        if: ${{ !cancelled() && github.event_name == 'push' }}
+        run: php bin/phpunit --exclude-group=todo
+
+      - name: Tests (PHPUnit) — suite entière
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: php bin/phpunit
+
+      # Pas de !cancelled() sur les mutations : elles n'ont de sens que si tout
+      # le reste est vert.
+      - name: Tests de mutation (Infection) — lignes modifiées depuis master
+        if: ${{ github.event_name == 'push' }}
+        run: >-
+          php vendor/bin/infection
+          --git-diff-lines --git-diff-base=origin/master
+          --min-msi=100 --min-covered-msi=100 --ignore-msi-with-no-mutations
+          --no-progress --show-mutations
+
+      - name: Tests de mutation (Infection) — tout le code
+        if: ${{ github.event_name == 'pull_request' }}
+        run: >-
+          php vendor/bin/infection
+          --min-msi=100 --min-covered-msi=100
+          --no-progress --show-mutations

@@ -23,7 +23,7 @@ define title
 endef
 
 .DEFAULT_GOAL := help
-.PHONY: help watch phpstan rector rector-fix cs cs-fix test qa sync hooks
+.PHONY: help watch phpstan rector rector-fix cs cs-fix test infection infection-all qa sync hooks
 
 ## —— Aide ———————————————————————————————————————————————
 help: ## Affiche cette aide
@@ -60,6 +60,14 @@ cs-fix: ## Corrige le style du code
 test: ## Lance les tests
 	$(call title,🧪  Tests — PHPUnit)
 	$(PHP) bin/phpunit
+
+infection: ## Tests de mutation sur les lignes modifiées depuis origin/master
+	$(call title,🧬  Infection — mutation des lignes modifiées)
+	$(PHP) vendor/bin/infection --git-diff-lines --git-diff-base=origin/master --show-mutations
+
+infection-all: ## Tests de mutation sur tout src/ (long)
+	$(call title,🧬  Infection — mutation de tout le projet)
+	$(PHP) vendor/bin/infection --show-mutations
 
 ## —— Git ————————————————————————————————————————————————
 hooks: ## Active les hooks git du dépôt (à refaire après chaque clone)

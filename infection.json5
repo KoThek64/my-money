@@ -1,0 +1,26 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": ["src"],
+        // Muter les fixtures ou le Kernel n'apprendrait rien sur l'appli.
+        "excludes": ["DataFixtures", "Kernel.php"]
+    },
+    "testFramework": "phpunit",
+    // Les tests écrits avant le code (groupe « todo ») sont rouges par nature : Infection exige une suite verte.
+    "testFrameworkOptions": "--exclude-group=todo",
+    // PCOV est livré désactivé : on ne l'allume que pour mesurer la couverture.
+    "initialTestsPhpOptions": "-d pcov.enabled=1",
+    // Une seule base de test partagée : pas de parallélisme pour l'instant.
+    "threads": 1,
+    "timeout": 30,
+    // Hors du projet : Infection coupe les chemins qui contiennent des espaces (« 4 - Suivi-depenses »).
+    "tmpDir": "/tmp/infection-my-money",
+    "logs": {
+        "text": "var/infection/infection.log",
+        "html": "var/infection/infection.html",
+        "summary": "var/infection/summary.log"
+    },
+    "mutators": {
+        "@default": true
+    }
+}
