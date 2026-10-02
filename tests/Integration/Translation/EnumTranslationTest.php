@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Integration;
+namespace App\Tests\Integration\Translation;
 
 use App\Enum\GoalScopeEnum;
 use App\Enum\MovementKindEnum;

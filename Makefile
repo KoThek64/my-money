@@ -23,7 +23,7 @@ define title
 endef
 
 .DEFAULT_GOAL := help
-.PHONY: help watch phpstan rector rector-fix cs cs-fix test infection infection-all qa sync hooks
+.PHONY: help watch phpstan rector rector-fix cs cs-fix test test-unit test-integration test-functional infection infection-all qa sync hooks
 
 ## —— Aide ———————————————————————————————————————————————
 help: ## Affiche cette aide
@@ -57,9 +57,21 @@ cs-fix: ## Corrige le style du code
 	$(call title,✨  Coding Standards — correction du style)
 	$(PHP) vendor/bin/php-cs-fixer fix
 
-test: ## Lance les tests
+test: ## Lance tous les tests
 	$(call title,🧪  Tests — PHPUnit)
 	$(PHP) bin/phpunit
+
+test-unit: ## Tests unitaires seuls (sans base ni HTTP, les plus rapides)
+	$(call title,🧪  Tests unitaires)
+	$(PHP) bin/phpunit --testsuite unit
+
+test-integration: ## Tests d'intégration seuls (services + base)
+	$(call title,🧪  Tests d'intégration)
+	$(PHP) bin/phpunit --testsuite integration
+
+test-functional: ## Tests fonctionnels seuls (pages, de bout en bout)
+	$(call title,🧪  Tests fonctionnels)
+	$(PHP) bin/phpunit --testsuite functional
 
 infection: ## Tests de mutation sur les lignes modifiées depuis origin/master
 	$(call title,🧬  Infection — mutation des lignes modifiées)

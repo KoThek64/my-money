@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tests\Unit;
+namespace App\Tests\Unit\Enum;
 
 use App\Enum\GoalScopeEnum;
 use PHPUnit\Framework\TestCase;
