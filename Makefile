@@ -23,7 +23,7 @@ define title
 endef
 
 .DEFAULT_GOAL := help
-.PHONY: help watch phpstan rector rector-fix cs cs-fix test test-unit test-integration test-functional infection infection-all qa sync hooks
+.PHONY: help watch phpstan rector rector-fix cs cs-fix test test-unit test-integration test-functional test-ready test-todo infection infection-all qa sync hooks
 
 ## —— Aide ———————————————————————————————————————————————
 help: ## Affiche cette aide
@@ -72,6 +72,14 @@ test-integration: ## Tests d'intégration seuls (services + base)
 test-functional: ## Tests fonctionnels seuls (pages, de bout en bout)
 	$(call title,🧪  Tests fonctionnels)
 	$(PHP) bin/phpunit --testsuite functional
+
+test-ready: ## Tests du code déjà écrit (hors « todo ») : doit toujours être vert
+	$(call title,🧪  Tests hors « todo »)
+	$(PHP) bin/phpunit --exclude-group=todo
+
+test-todo: ## Tests « todo » seuls : ce qu'il reste à coder
+	$(call title,🧪  Tests « todo » — reste à coder)
+	$(PHP) bin/phpunit --group=todo
 
 infection: ## Tests de mutation sur les lignes modifiées depuis origin/master
 	$(call title,🧬  Infection — mutation des lignes modifiées)
