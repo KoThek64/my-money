@@ -10,6 +10,7 @@ use App\Enum\MovementKindEnum;
 use App\Service\Category\DefaultCategoryInstaller;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * RG-4 — jeu de catégories de base, copié à l'inscription.
@@ -67,12 +68,25 @@ final class DefaultCategoryInstallerTest extends KernelTestCase
 
         foreach ($categories as $category) {
             self::assertSame($user->getId(), $category->getUser()?->getId());
-            self::assertNotSame('', $category->getColor());
-            self::assertNotSame('', $category->getIcon());
             self::assertNull($category->getArchivedAt(), 'Une catégorie de base ne naît pas archivée.');
 
             // Une clé absente du catalogue serait stockée telle quelle en base.
             self::assertStringNotContainsString('category.default.', (string) $category->getName());
+        }
+    }
+
+    /**
+     * Sinon l'utilisateur se verrait refuser, en modifiant une catégorie de base, une valeur qu'il n'a pas saisie.
+     */
+    public function testEveryCategoryPassesValidation(): void
+    {
+        /** @var ValidatorInterface $validator */
+        $validator = self::getContainer()->get(ValidatorInterface::class);
+
+        foreach ($this->categoriesOf($this->createUser('valide@my-money.test')) as $category) {
+            $violations = $validator->validate($category);
+
+            self::assertCount(0, $violations, $category->getName().' : '.$violations);
         }
     }
 

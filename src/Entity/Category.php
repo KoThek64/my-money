@@ -10,6 +10,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\Index(columns: ['user_id'])]
@@ -26,15 +27,22 @@ class Category implements OwnedByUser
     private ?User $user = null;
 
     #[ORM\Column(length: 60)]
+    #[Assert\NotBlank(message: 'category.name.not_blank')]
+    #[Assert\Length(max: 60, maxMessage: 'category.name.too_long')]
     private ?string $name = null;
 
     #[ORM\Column(enumType: MovementKindEnum::class)]
+    #[Assert\NotNull(message: 'category.type.not_blank')]
     private ?MovementKindEnum $type = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank(message: 'category.color.not_blank')]
+    #[Assert\CssColor(formats: Assert\CssColor::HEX_LONG, message: 'category.color.invalid')]
     private ?string $color = null;
 
     #[ORM\Column(length: 60)]
+    #[Assert\NotBlank(message: 'category.icon.not_blank')]
+    #[Assert\Length(max: 60, maxMessage: 'category.icon.too_long')]
     private ?string $icon = null;
 
     #[ORM\Column(nullable: true)]
@@ -77,7 +85,7 @@ class Category implements OwnedByUser
         return $this->name;
     }
 
-    public function setName(string $name): static
+    public function setName(?string $name): static
     {
         $this->name = $name;
 
@@ -89,7 +97,7 @@ class Category implements OwnedByUser
         return $this->type;
     }
 
-    public function setType(MovementKindEnum $type): static
+    public function setType(?MovementKindEnum $type): static
     {
         $this->type = $type;
 
@@ -101,7 +109,7 @@ class Category implements OwnedByUser
         return $this->color;
     }
 
-    public function setColor(string $color): static
+    public function setColor(?string $color): static
     {
         $this->color = $color;
 
@@ -113,7 +121,7 @@ class Category implements OwnedByUser
         return $this->icon;
     }
 
-    public function setIcon(string $icon): static
+    public function setIcon(?string $icon): static
     {
         $this->icon = $icon;
 

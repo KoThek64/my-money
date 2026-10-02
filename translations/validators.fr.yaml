@@ -9,3 +9,15 @@ user:
         too_weak: 'Ce mot de passe est trop simple. Allonge-le, ou mélange lettres, chiffres et symboles.'
     terms:
         must_agree: Tu dois accepter les conditions d'utilisation.
+category:
+    name:
+        not_blank: Merci de saisir un nom
+        too_long: 'Le nom ne doit pas dépasser {{ limit }} caractères'
+    type:
+        not_blank: Merci de choisir un type
+    color:
+        not_blank: Merci de choisir une couleur
+        invalid: 'La couleur doit être au format #RRGGBB'
+    icon:
+        not_blank: Merci de saisir une icône
+        too_long: 'L''icône ne doit pas dépasser {{ limit }} caractères'

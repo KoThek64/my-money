@@ -40,6 +40,14 @@ final class CrudCategoryServiceTest extends KernelTestCase
      */
     public static function usages(): iterable
     {
+        yield 'transaction' => [static fn (User $user, Category $category): object => new Transaction()
+            ->setUser($user)
+            ->setCategory($category)
+            ->setAmount(1000)
+            ->setLabel('Supermarché')
+            ->setDate(new \DateTimeImmutable()),
+        ];
+
         yield 'transaction en corbeille' => [static fn (User $user, Category $category): object => new Transaction()
             ->setUser($user)
             ->setCategory($category)

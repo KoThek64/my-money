@@ -22,7 +22,7 @@ class CategoryTest extends TestCase
         $this->category->setName('Test Category')
             ->setType(MovementKindEnum::DEPENSE)
             ->setIcon('icon')
-            ->setColor('color')
+            ->setColor('#000000')
             ->setUser($user);
     }
 
@@ -31,7 +31,7 @@ class CategoryTest extends TestCase
         $this->assertSame('Test Category', $this->category->getName());
         $this->assertSame(MovementKindEnum::DEPENSE, $this->category->getType());
         $this->assertSame('icon', $this->category->getIcon());
-        $this->assertSame('color', $this->category->getColor());
+        $this->assertSame('#000000', $this->category->getColor());
         $this->assertSame('test@example.com', $this->category->getUser()?->getEmail());
     }
 
@@ -75,5 +75,17 @@ class CategoryTest extends TestCase
 
         $this->assertCount(0, $this->category->getTransactions());
         $this->assertNull($transaction->getCategory());
+    }
+
+    public function testRemovingAMovedTransactionKeepsItsNewCategory(): void
+    {
+        $transaction = new Transaction();
+        $this->category->addTransaction($transaction);
+        $other = new Category();
+        $transaction->setCategory($other);
+
+        $this->category->removeTransaction($transaction);
+
+        $this->assertSame($other, $transaction->getCategory());
     }
 }

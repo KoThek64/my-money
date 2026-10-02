@@ -15,9 +15,15 @@ class CategoryEditType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('name')
-            ->add('color', ColorType::class)
-            ->add('icon')
+            ->add('name', null, [
+                'label' => 'category.form.name',
+            ])
+            ->add('color', ColorType::class, [
+                'label' => 'category.form.color',
+            ])
+            ->add('icon', null, [
+                'label' => 'category.form.icon',
+            ])
         ;
     }
 

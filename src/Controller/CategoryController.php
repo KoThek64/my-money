@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller;
 
 use App\Entity\Category;
-use App\Entity\User;
 use App\Form\CategoryEditType;
 use App\Form\CategoryType;
 use App\Repository\CategoryRepository;
+use App\Security\Voter\OwnershipVoter;
 use App\Service\Category\CrudCategoryService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -14,6 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/category', name: 'app_category_')]
 final class CategoryController extends AbstractController
@@ -35,6 +38,7 @@ final class CategoryController extends AbstractController
     }
 
     #[Route('/show/{id}', name: 'show')]
+    #[IsGranted(OwnershipVoter::VIEW, 'category')]
     public function show(Category $category): Response
     {
         return $this->render('category/show.html.twig', [
@@ -45,15 +49,13 @@ final class CategoryController extends AbstractController
     #[Route('/create', name: 'create')]
     public function create(Request $request): Response
     {
-        /** @var User $user */
-        $user = $this->getUser();
         $category = new Category();
 
         $form = $this->createForm(CategoryType::class, $category);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->service->create($user, $category);
+            $this->service->create($category);
 
             return $this->redirectToRoute('app_home');
         }
@@ -64,6 +66,7 @@ final class CategoryController extends AbstractController
     }
 
     #[Route('/edit/{id}', name: 'edit')]
+    #[IsGranted(OwnershipVoter::EDIT, 'category')]
     public function edit(Category $category, Request $request): Response
     {
         $form = $this->createForm(CategoryEditType::class, $category);
@@ -82,6 +85,7 @@ final class CategoryController extends AbstractController
 
     #[Route('/delete/{id}', name: 'delete', methods: ['POST'])]
     #[IsCsrfTokenValid('delete-category')]
+    #[IsGranted(OwnershipVoter::DELETE, 'category')]
     public function delete(Category $category): RedirectResponse
     {
         $this->service->delete($category);

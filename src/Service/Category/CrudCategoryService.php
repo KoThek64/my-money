@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Service\Category;
 
 use App\Entity\Category;
-use App\Entity\User;
 use App\Repository\CategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -17,12 +16,8 @@ readonly class CrudCategoryService
     ) {
     }
 
-    public function create(
-        User $user,
-        Category $category,
-    ): void {
-        $category->setUser($user);
-
+    public function create(Category $category): void
+    {
         $this->em->persist($category);
         $this->em->flush();
     }

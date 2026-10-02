@@ -41,6 +41,11 @@ category:
         bonus: Prime
         refund: Remboursement
         other_income: Autres revenus
+    form:
+        name: Nom
+        type: Type
+        color: Couleur
+        icon: Icône
 
 login:
     title: Connexion
