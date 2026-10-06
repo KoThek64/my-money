@@ -16,6 +16,11 @@ readonly class CrudCategoryService
     ) {
     }
 
+    public function isUsed(Category $category): bool
+    {
+        return $this->repository->isUsed($category);
+    }
+
     public function create(Category $category): void
     {
         $this->em->persist($category);

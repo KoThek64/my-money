@@ -23,14 +23,20 @@ class CategoryEditType extends AbstractType
             ])
             ->add('icon', null, [
                 'label' => 'category.form.icon',
-            ])
-        ;
+            ]);
+
+        if ($options['type_editable']) {
+            $builder->add('type', null, [
+                'label' => 'category.form.type',
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => Category::class,
+            'type_editable' => false,
         ]);
     }
 }

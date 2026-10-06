@@ -30,7 +30,7 @@ final class CategoryController extends AbstractController
     #[Route('/show-all', name: 'show_all')]
     public function showAll(): Response
     {
-        $categories = $this->repository->findAll();
+        $categories = $this->repository->findActive();
 
         return $this->render('category/show_all.html.twig', [
             'categories' => $categories,
@@ -57,7 +57,7 @@ final class CategoryController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->service->create($category);
 
-            return $this->redirectToRoute('app_home');
+            return $this->redirectToRoute('app_category_show_all');
         }
 
         return $this->render('category/create.html.twig', [
@@ -69,13 +69,21 @@ final class CategoryController extends AbstractController
     #[IsGranted(OwnershipVoter::EDIT, 'category')]
     public function edit(Category $category, Request $request): Response
     {
-        $form = $this->createForm(CategoryEditType::class, $category);
+        if ($category->isArchived()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $form = $this->createForm(
+            CategoryEditType::class,
+            $category,
+            ['type_editable' => !$this->service->isUsed($category)]
+        );
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->service->edit();
 
-            return $this->redirectToRoute('app_home');
+            return $this->redirectToRoute('app_category_show_all');
         }
 
         return $this->render('category/edit.html.twig', [
@@ -88,8 +96,12 @@ final class CategoryController extends AbstractController
     #[IsGranted(OwnershipVoter::DELETE, 'category')]
     public function delete(Category $category): RedirectResponse
     {
+        if ($category->isArchived()) {
+            throw $this->createAccessDeniedException();
+        }
+
         $this->service->delete($category);
 
-        return $this->redirectToRoute('app_home');
+        return $this->redirectToRoute('app_category_show_all');
     }
 }

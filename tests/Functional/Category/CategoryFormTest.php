@@ -242,6 +242,7 @@ final class CategoryFormTest extends WebTestCase
 
         $this->submit('/category/edit/'.$id, 'category_edit', [
             'name' => 'Logement',
+            'type' => 'depense',
             'color' => '#ffffff',
             'icon' => 'tabler:building',
             ...$override,
@@ -273,7 +274,6 @@ final class CategoryFormTest extends WebTestCase
     /**
      * RG-4 — le type reste éditable tant que rien n'utilise la catégorie.
      */
-    #[Group('todo')]
     public function testUnusedCategoryTypeIsEditable(): void
     {
         $id = $this->createCategory();
@@ -327,7 +327,7 @@ final class CategoryFormTest extends WebTestCase
     {
         $id = $this->createCategory();
 
-        $this->forge('/category/edit/'.$id, 'category_edit', ['name' => 'Piraté', 'color' => '#ffffff', 'icon' => 'tabler:skull']);
+        $this->forge('/category/edit/'.$id, 'category_edit', ['name' => 'Piraté', 'type' => 'depense', 'color' => '#ffffff', 'icon' => 'tabler:skull']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSame('Loyer', $this->reload($id)->getName());
@@ -336,7 +336,6 @@ final class CategoryFormTest extends WebTestCase
     /**
      * Deux catégories actives de même nom et de même type seraient indiscernables à la saisie.
      */
-    #[Group('todo')]
     public function testDuplicateNameIsRejectedOnCreation(): void
     {
         $this->createCategory(name: 'Courses');
@@ -347,13 +346,12 @@ final class CategoryFormTest extends WebTestCase
         self::assertSame(1, $this->countCategories());
     }
 
-    #[Group('todo')]
     public function testRenamingToAnExistingNameIsRejected(): void
     {
         $this->createCategory(name: 'Courses');
         $id = $this->createCategory(name: 'Loyer');
 
-        $this->submit('/category/edit/'.$id, 'category_edit', ['name' => 'Courses', 'color' => '#000000', 'icon' => 'tabler:home']);
+        $this->submit('/category/edit/'.$id, 'category_edit', ['name' => 'Courses', 'type' => 'depense', 'color' => '#000000', 'icon' => 'tabler:home']);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSame('Loyer', $this->reload($id)->getName());
@@ -366,10 +364,57 @@ final class CategoryFormTest extends WebTestCase
     {
         $id = $this->createCategory(name: 'Loyer');
 
-        $this->submit('/category/edit/'.$id, 'category_edit', ['name' => 'Loyer', 'color' => '#ffffff', 'icon' => 'tabler:home']);
+        $this->submit('/category/edit/'.$id, 'category_edit', ['name' => 'Loyer', 'type' => 'depense', 'color' => '#ffffff', 'icon' => 'tabler:home']);
 
         self::assertResponseRedirects();
         self::assertSame('#ffffff', $this->reload($id)->getColor());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function sameNameInAnotherCase(): iterable
+    {
+        yield 'minuscules' => ['Courses', 'courses'];
+        yield 'majuscule accentuée' => ['épargne', 'Épargne'];
+    }
+
+    /**
+     * « loyer » et « Loyer » désignent la même catégorie : la casse ne distingue pas deux noms.
+     */
+    #[DataProvider('sameNameInAnotherCase')]
+    public function testDuplicateNameIgnoresCaseOnCreation(string $existing, string $submitted): void
+    {
+        $this->createCategory(name: $existing);
+
+        $this->submit('/category/create', 'category', [...self::VALID, 'name' => $submitted]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(1, $this->countCategories());
+    }
+
+    public function testRenamingToAnExistingNameInAnotherCaseIsRejected(): void
+    {
+        $this->createCategory(name: 'Courses');
+        $id = $this->createCategory(name: 'Loyer');
+
+        $this->submit('/category/edit/'.$id, 'category_edit', ['name' => 'courses', 'type' => 'depense', 'color' => '#000000', 'icon' => 'tabler:home']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Loyer', $this->reload($id)->getName());
+    }
+
+    /**
+     * Garde-fou : corriger la casse de son propre nom n'est pas un doublon.
+     */
+    public function testChangingTheCaseOfItsOwnNameIsAccepted(): void
+    {
+        $id = $this->createCategory(name: 'loyer');
+
+        $this->submit('/category/edit/'.$id, 'category_edit', ['name' => 'Loyer', 'type' => 'depense', 'color' => '#000000', 'icon' => 'tabler:home']);
+
+        self::assertResponseRedirects();
+        self::assertSame('Loyer', $this->reload($id)->getName());
     }
 
     /**
@@ -417,7 +462,6 @@ final class CategoryFormTest extends WebTestCase
      *
      * @param array<string, string> $fields
      */
-    #[Group('todo')]
     #[DataProvider('editRequests')]
     public function testArchivedCategoryIsReadOnly(string $method, array $fields): void
     {
@@ -446,14 +490,13 @@ final class CategoryFormTest extends WebTestCase
         yield 'modification' => ['edit'];
     }
 
-    #[Group('todo')]
     #[DataProvider('savingForms')]
     public function testSavingGoesBackToTheList(string $action): void
     {
         if ('create' === $action) {
             $this->submit('/category/create', 'category', self::VALID);
         } else {
-            $this->submit('/category/edit/'.$this->createCategory(), 'category_edit', ['name' => 'Logement', 'color' => '#ffffff', 'icon' => 'tabler:building']);
+            $this->submit('/category/edit/'.$this->createCategory(), 'category_edit', ['name' => 'Logement', 'type' => 'depense', 'color' => '#ffffff', 'icon' => 'tabler:building']);
         }
 
         self::assertResponseRedirects('/category/show-all');

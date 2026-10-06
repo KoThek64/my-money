@@ -9,11 +9,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\Index(columns: ['user_id'])]
+#[UniqueEntity(fields: ['name', 'type'], message: 'category.name.already_used', repositoryMethod: 'findActiveDuplicates', errorPath: 'name')]
 class Category implements OwnedByUser
 {
     #[ORM\Id]
@@ -138,6 +140,11 @@ class Category implements OwnedByUser
         $this->archivedAt = $archivedAt;
 
         return $this;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->getArchivedAt() instanceof \DateTimeImmutable;
     }
 
     public function getCreatedAt(): ?\DateTimeImmutable

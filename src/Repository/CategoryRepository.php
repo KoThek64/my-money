@@ -8,6 +8,7 @@ use App\Entity\Category;
 use App\Entity\Goal;
 use App\Entity\Recurrence;
 use App\Entity\Transaction;
+use App\Enum\MovementKindEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -49,6 +50,42 @@ class CategoryRepository extends ServiceEntityRepository
         }
 
         return 0 < $count;
+    }
+
+    /**
+     * @return list<Category>
+     */
+    public function findActive(?MovementKindEnum $type = null): array
+    {
+        $qb = $this->createQueryBuilder('c')
+            ->where('c.archivedAt IS NULL');
+
+        if (null !== $type) {
+            $qb->andWhere('c.type = :type')
+                ->setParameter('type', $type);
+        }
+
+        $qb->orderBy('c.type', 'ASC')
+            ->addOrderBy('c.name', 'ASC');
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @param array<string, mixed> $criteria
+     *
+     * @return list<Category>
+     */
+    public function findActiveDuplicates(array $criteria): array
+    {
+        return $this->createQueryBuilder('c')
+            ->where('LOWER(c.name) = LOWER(:name)')
+            ->andWhere('c.type = :type')
+            ->andWhere('c.archivedAt IS NULL')
+            ->setParameter('name', $criteria['name'])
+            ->setParameter('type', $criteria['type'])
+            ->getQuery()
+            ->getResult();
     }
 
     /**

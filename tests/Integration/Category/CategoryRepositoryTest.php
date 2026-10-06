@@ -23,6 +23,8 @@ final class CategoryRepositoryTest extends KernelTestCase
 
     private CategoryRepository $repository;
 
+    private ?User $owner = null;
+
     protected function setUp(): void
     {
         self::bootKernel();
@@ -38,24 +40,81 @@ final class CategoryRepositoryTest extends KernelTestCase
         $this->entityManager->getConnection()->executeStatement('DELETE FROM "user"');
     }
 
-    private function persistedCategory(): Category
-    {
-        $user = new User();
-        $user->setEmail('alice@my-money.test')
-            ->setPassword('irrelevant');
+    private function persistedCategory(
+        string $name = 'Courses',
+        MovementKindEnum $type = MovementKindEnum::DEPENSE,
+        bool $archived = false,
+    ): Category {
+        if (!$this->owner instanceof User) {
+            $this->owner = new User();
+            $this->owner->setEmail('alice@my-money.test')
+                ->setPassword('irrelevant');
+            $this->entityManager->persist($this->owner);
+        }
 
         $category = new Category();
-        $category->setName('Courses')
-            ->setType(MovementKindEnum::DEPENSE)
+        $category->setName($name)
+            ->setType($type)
             ->setColor('#000000')
             ->setIcon('tabler:cart')
-            ->setUser($user);
+            ->setUser($this->owner);
+        if ($archived) {
+            $category->setArchivedAt(new \DateTimeImmutable());
+        }
 
-        $this->entityManager->persist($user);
         $this->entityManager->persist($category);
         $this->entityManager->flush();
 
         return $category;
+    }
+
+    /**
+     * @param list<Category> $categories
+     *
+     * @return list<string|null>
+     */
+    private static function names(array $categories): array
+    {
+        return array_map(static fn (Category $category): ?string => $category->getName(), $categories);
+    }
+
+    public function testFindActiveLeavesArchivedCategoriesOut(): void
+    {
+        $this->persistedCategory('Loyer');
+        $this->persistedCategory('Ancienne', archived: true);
+
+        self::assertSame(['Loyer'], self::names($this->repository->findActive()));
+    }
+
+    /**
+     * @return iterable<string, array{MovementKindEnum, string}>
+     */
+    public static function types(): iterable
+    {
+        yield 'dépenses' => [MovementKindEnum::DEPENSE, 'Loyer'];
+        yield 'revenus' => [MovementKindEnum::REVENU, 'Salaire'];
+    }
+
+    #[DataProvider('types')]
+    public function testFindActiveKeepsOnlyTheRequestedType(MovementKindEnum $type, string $expected): void
+    {
+        $this->persistedCategory('Loyer', MovementKindEnum::DEPENSE);
+        $this->persistedCategory('Salaire', MovementKindEnum::REVENU);
+
+        self::assertSame([$expected], self::names($this->repository->findActive($type)));
+    }
+
+    public function testFindActiveSortsByTypeThenByName(): void
+    {
+        $this->persistedCategory('Salaire', MovementKindEnum::REVENU);
+        $this->persistedCategory('Loyer', MovementKindEnum::DEPENSE);
+        $this->persistedCategory('Bonus', MovementKindEnum::REVENU);
+        $this->persistedCategory('Courses', MovementKindEnum::DEPENSE);
+
+        self::assertSame(
+            ['Courses', 'Loyer', 'Bonus', 'Salaire'],
+            self::names($this->repository->findActive()),
+        );
     }
 
     /**

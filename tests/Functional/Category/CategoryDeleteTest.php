@@ -10,7 +10,6 @@ use App\Entity\User;
 use App\Enum\MovementKindEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Uid\Uuid;
@@ -187,7 +186,6 @@ final class CategoryDeleteTest extends WebTestCase
     /**
      * Une catégorie archivée est en lecture seule : on ne la supprime pas une seconde fois.
      */
-    #[Group('todo')]
     #[DataProvider('archivedCategories')]
     public function testArchivedCategoryCannotBeDeletedAgain(bool $used): void
     {
@@ -202,7 +200,6 @@ final class CategoryDeleteTest extends WebTestCase
         self::assertEquals($archivedAt, $this->findCategory()?->getArchivedAt());
     }
 
-    #[Group('todo')]
     public function testDeletionGoesBackToTheList(): void
     {
         $this->delete('POST', ['_token' => 'csrf-token']);

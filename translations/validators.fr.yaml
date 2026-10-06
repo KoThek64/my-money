@@ -13,6 +13,7 @@ category:
     name:
         not_blank: Merci de saisir un nom
         too_long: 'Le nom ne doit pas dépasser {{ limit }} caractères'
+        already_used: Une catégorie existe déjà avec ce nom
     type:
         not_blank: Merci de choisir un type
     color:
