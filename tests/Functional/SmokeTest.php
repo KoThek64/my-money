@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Tests\Functional;
 
 use App\Entity\Category;
+use App\Entity\Transaction;
 use App\Entity\User;
 use App\Enum\MovementKindEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -40,7 +42,11 @@ final class SmokeTest extends WebTestCase
                 continue;
             }
 
-            $parameters = array_fill_keys($route->compile()->getPathVariables(), self::ANY_UUID);
+            // Une valeur par défaut (ex. {type} = depense) respecte les contraintes de la route, pas un uuid.
+            $parameters = [];
+            foreach ($route->compile()->getPathVariables() as $variable) {
+                $parameters[$variable] = $route->getDefault($variable) ?? self::ANY_UUID;
+            }
             $requests[$name] = [$route->getMethods()[0] ?? 'GET', $router->generate($name, $parameters)];
         }
 
@@ -87,14 +93,42 @@ final class SmokeTest extends WebTestCase
             ->setIcon('tabler:cart')
             ->setUser($user);
 
+        $transaction = new Transaction()
+            ->setUser($user)
+            ->setCategory($category)
+            ->setAmount(1250)
+            ->setLabel('Carrefour')
+            ->setDate(new \DateTimeImmutable());
+
         $entityManager->persist($user);
         $entityManager->persist($category);
+        $entityManager->persist($transaction);
         $entityManager->flush();
         $entityManager->clear();
 
         $client->loginUser($user);
-        $client->request('GET', \sprintf($uri, $category->getId()));
+        // %1$s : la catégorie, %2$s : la transaction.
+        $client->request('GET', \sprintf($uri, $category->getId(), $transaction->getId()));
 
         self::assertResponseIsSuccessful();
+    }
+
+    /**
+     * À fusionner dans pages() une fois les écrans de saisie codés.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function transactionPages(): iterable
+    {
+        yield 'saisie (dépense par défaut)' => ['/transaction/create'];
+        yield 'saisie d\'un revenu' => ['/transaction/create/revenu'];
+        yield 'modification d\'une transaction' => ['/transaction/edit/%2$s'];
+    }
+
+    #[DataProvider('transactionPages')]
+    #[Group('todo')]
+    public function testTransactionPageRespondsForALoggedInUser(string $uri): void
+    {
+        $this->testPageRespondsForALoggedInUser($uri);
     }
 }
