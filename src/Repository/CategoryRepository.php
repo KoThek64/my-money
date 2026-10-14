@@ -60,7 +60,7 @@ class CategoryRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('c')
             ->where('c.archivedAt IS NULL');
 
-        if (null !== $type) {
+        if ($type instanceof MovementKindEnum) {
             $qb->andWhere('c.type = :type')
                 ->setParameter('type', $type);
         }
