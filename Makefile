@@ -23,7 +23,7 @@ define title
 endef
 
 .DEFAULT_GOAL := help
-.PHONY: help watch phpstan rector rector-fix cs cs-fix test test-unit test-integration test-functional test-ready test-todo infection infection-all qa sync hooks
+.PHONY: help watch phpstan rector rector-fix cs cs-fix test test-unit test-integration test-functional test-ready test-todo test-templates infection infection-all qa sync hooks
 
 ## —— Aide ———————————————————————————————————————————————
 help: ## Affiche cette aide
@@ -73,13 +73,17 @@ test-functional: ## Tests fonctionnels seuls (pages, de bout en bout)
 	$(call title,🧪  Tests fonctionnels)
 	$(PHP) bin/phpunit --testsuite functional
 
-test-ready: ## Tests du code déjà écrit (hors « todo ») : doit toujours être vert
-	$(call title,🧪  Tests hors « todo »)
-	$(PHP) bin/phpunit --exclude-group=todo
+test-ready: ## Tests du code déjà écrit (hors « todo » et « template ») : doit toujours être vert
+	$(call title,🧪  Tests hors « todo » et « template »)
+	$(PHP) bin/phpunit --exclude-group=todo --exclude-group=template
 
-test-todo: ## Tests « todo » seuls : ce qu'il reste à coder
+test-todo: ## Tests « todo » seuls, hors templates : ce qu'il reste à coder
 	$(call title,🧪  Tests « todo » — reste à coder)
-	$(PHP) bin/phpunit --group=todo
+	$(PHP) bin/phpunit --group=todo --exclude-group=template
+
+test-templates: ## Tests « template » seuls : ce qui attend le rendu HTML des pages
+	$(call title,🧪  Tests « template » — rendu des pages)
+	$(PHP) bin/phpunit --group=template
 
 infection: ## Tests de mutation sur les lignes modifiées depuis origin/master
 	$(call title,🧬  Infection — mutation des lignes modifiées)

@@ -104,19 +104,19 @@ jobs:
           php bin/console importmap:install
           php bin/console sass:build
 
-      # Un test « todo » décrit un comportement pas encore codé : toléré sur dev,
+      # Un test « todo » ou « template » décrit un comportement pas encore codé : toléré sur dev,
       # jamais sur master (Infection les ignore, un oubli passerait inaperçu).
-      - name: Aucun test « todo » vers master
+      - name: Aucun test « todo » ni « template » vers master
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: |
-          if grep -rn "Group('todo')" tests; then
-            echo "::error::Des tests sont encore marqués « todo » : à coder avant de fusionner vers master."
+          if grep -rnE "Group\('(todo|template)'\)" tests; then
+            echo "::error::Des tests sont encore marqués « todo » ou « template » : à coder avant de fusionner vers master."
             exit 1
           fi
 
-      - name: Tests (PHPUnit) — dev, hors « todo »
+      - name: Tests (PHPUnit) — dev, hors « todo » et « template »
         if: ${{ !cancelled() && github.event_name == 'push' }}
-        run: php bin/phpunit --exclude-group=todo
+        run: php bin/phpunit --exclude-group=todo --exclude-group=template
 
       - name: Tests (PHPUnit) — suite entière
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}

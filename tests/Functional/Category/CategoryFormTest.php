@@ -299,7 +299,7 @@ final class CategoryFormTest extends WebTestCase
     /**
      * Les archivées se consultent ailleurs (paramètres), pas dans la liste de gestion.
      */
-    #[Group('todo')]
+    #[Group('template')]
     public function testListShowsActiveCategoriesOnly(): void
     {
         $this->createCategory(name: 'Loyer');
@@ -502,7 +502,7 @@ final class CategoryFormTest extends WebTestCase
         self::assertResponseRedirects('/category/show-all');
     }
 
-    #[Group('todo')]
+    #[Group('template')]
     public function testShowPageDisplaysTheCategory(): void
     {
         $id = $this->createCategory(name: 'Loyer');
@@ -516,7 +516,7 @@ final class CategoryFormTest extends WebTestCase
     /**
      * RG-1.1 — la liste ne montre que les catégories du compte connecté.
      */
-    #[Group('todo')]
+    #[Group('template')]
     public function testListHidesOtherAccountsCategories(): void
     {
         $this->createCategory(name: 'Loyer');

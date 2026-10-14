@@ -6,8 +6,8 @@
         "excludes": ["DataFixtures", "Kernel.php"]
     },
     "testFramework": "phpunit",
-    // Les tests écrits avant le code (groupe « todo ») sont rouges par nature : Infection exige une suite verte.
-    "testFrameworkOptions": "--exclude-group=todo",
+    // Les tests écrits avant le code (« todo », « template ») sont rouges par nature : Infection exige une suite verte.
+    "testFrameworkOptions": "--exclude-group=todo --exclude-group=template",
     // PCOV est livré désactivé : on ne l'allume que pour mesurer la couverture.
     "initialTestsPhpOptions": "-d pcov.enabled=1",
     // Une seule base de test partagée : pas de parallélisme pour l'instant.
