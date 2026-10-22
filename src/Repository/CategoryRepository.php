@@ -10,6 +10,7 @@ use App\Entity\Recurrence;
 use App\Entity\Transaction;
 use App\Enum\MovementKindEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -52,10 +53,7 @@ class CategoryRepository extends ServiceEntityRepository
         return 0 < $count;
     }
 
-    /**
-     * @return list<Category>
-     */
-    public function findActive(?MovementKindEnum $type = null): array
+    public function createActiveQueryBuilder(?MovementKindEnum $type = null): QueryBuilder
     {
         $qb = $this->createQueryBuilder('c')
             ->where('c.archivedAt IS NULL');
@@ -68,7 +66,15 @@ class CategoryRepository extends ServiceEntityRepository
         $qb->orderBy('c.type', 'ASC')
             ->addOrderBy('c.name', 'ASC');
 
-        return $qb->getQuery()->getResult();
+        return $qb;
+    }
+
+    /**
+     * @return list<Category>
+     */
+    public function findActive(?MovementKindEnum $type = null): array
+    {
+        return $this->createActiveQueryBuilder($type)->getQuery()->getResult();
     }
 
     /**

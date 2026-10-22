@@ -22,3 +22,15 @@ category:
     icon:
         not_blank: Merci de saisir une icône
         too_long: 'L''icône ne doit pas dépasser {{ limit }} caractères'
+transaction:
+    amount:
+        invalid: Le montant saisi n'est pas valide
+        not_null: Merci de saisir un montant
+        positive: Merci de saisir un montant positif
+        less_than_or_equal: Merci de saisir un montant plus petit ou égal à 21 474 836,47 €
+    category:
+        not_null: Merci de choisir une catégorie
+    label:
+        length: 'Merci de ne pas dépasser {{ limit }} caractères'
+    date:
+        not_null: Merci de saisir une date

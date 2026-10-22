@@ -9,6 +9,7 @@ use App\Trait\Timestampable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TransactionRepository::class)]
 #[ORM\Index(name: 'idx_tx_user_date', columns: ['user_id', 'date'], options: ['where' => '(deleted_at IS NULL)'])]
@@ -31,6 +32,7 @@ class Transaction implements OwnedByUser, SoftDeletable
 
     #[ORM\ManyToOne(inversedBy: 'transactions')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'transaction.category.not_null')]
     private ?Category $category = null;
 
     #[ORM\ManyToOne]
@@ -38,12 +40,17 @@ class Transaction implements OwnedByUser, SoftDeletable
     private ?Recurrence $recurrence = null;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: 'transaction.amount.not_null')]
+    #[Assert\Positive(message: 'transaction.amount.positive')]
+    #[Assert\LessThanOrEqual(value: 2147483647, message: 'transaction.amount.less_than_or_equal')]
     private ?int $amount = null;
 
-    #[ORM\Column(length: 120)]
+    #[ORM\Column(length: 120, nullable: true)]
+    #[Assert\Length(max: 120, maxMessage: 'transaction.label.length')]
     private ?string $label = null;
 
     #[ORM\Column(type: 'date_immutable')]
+    #[Assert\NotNull(message: 'transaction.date.not_null')]
     private ?\DateTimeImmutable $date = null;
 
     #[ORM\Column(nullable: true)]
@@ -95,7 +102,7 @@ class Transaction implements OwnedByUser, SoftDeletable
         return $this->amount;
     }
 
-    public function setAmount(int $amount): static
+    public function setAmount(?int $amount): static
     {
         $this->amount = $amount;
 
@@ -107,7 +114,7 @@ class Transaction implements OwnedByUser, SoftDeletable
         return $this->label;
     }
 
-    public function setLabel(string $label): static
+    public function setLabel(?string $label): static
     {
         $this->label = $label;
 
@@ -119,7 +126,7 @@ class Transaction implements OwnedByUser, SoftDeletable
         return $this->date;
     }
 
-    public function setDate(\DateTimeImmutable $date): static
+    public function setDate(?\DateTimeImmutable $date): static
     {
         $this->date = $date;
 

@@ -47,6 +47,15 @@ category:
         color: Couleur
         icon: Icône
 
+transaction:
+    form:
+        amount: Montant
+        label: Libellé
+        date: Date
+        category:
+            label: Catégorie
+            placeholder: Choisis une catégorie
+
 login:
     title: Connexion
     email: Email
