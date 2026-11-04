@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Doctrine\Filter;
 
 use App\Interface\SoftDeletable;
@@ -14,7 +16,7 @@ final class SoftDeleteFilter extends SQLFilter
 {
     public function addFilterConstraint(ClassMetadata $targetEntity, string $targetTableAlias): string
     {
-        if (!$targetEntity->reflClass->implementsInterface(SoftDeletable::class)) {
+        if (!is_a($targetEntity->getName(), SoftDeletable::class, true)) {
             return '';
         }
 

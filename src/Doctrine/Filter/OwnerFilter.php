@@ -19,7 +19,7 @@ final class OwnerFilter extends SQLFilter
 
     public function addFilterConstraint(ClassMetadata $targetEntity, string $targetTableAlias): string
     {
-        if (!$targetEntity->reflClass->implementsInterface(OwnedByUser::class)) {
+        if (!is_a($targetEntity->getName(), OwnedByUser::class, true)) {
             return '';
         }
 
