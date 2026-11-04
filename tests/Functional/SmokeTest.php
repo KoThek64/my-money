@@ -10,7 +10,6 @@ use App\Entity\User;
 use App\Enum\MovementKindEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -126,7 +125,6 @@ final class SmokeTest extends WebTestCase
     }
 
     #[DataProvider('transactionPages')]
-    #[Group('todo')]
     public function testTransactionPageRespondsForALoggedInUser(string $uri): void
     {
         $this->testPageRespondsForALoggedInUser($uri);

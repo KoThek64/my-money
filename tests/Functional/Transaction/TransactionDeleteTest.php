@@ -10,7 +10,6 @@ use App\Entity\User;
 use App\Enum\MovementKindEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -19,7 +18,6 @@ use Symfony\Component\Uid\Uuid;
 /**
  * RG-7 — supprimer une transaction la met en corbeille : POST uniquement, avec jeton CSRF.
  */
-#[Group('todo')]
 final class TransactionDeleteTest extends WebTestCase
 {
     private KernelBrowser $client;
@@ -156,6 +154,7 @@ final class TransactionDeleteTest extends WebTestCase
     {
         /** @var RouterInterface $router */
         $router = self::getContainer()->get(RouterInterface::class);
+        $router->getContext()->setMethod('POST');
         $router->match('/transaction/delete/'.$this->transactionId);
 
         $this->entityManager()->getConnection()->executeStatement(

@@ -10,7 +10,6 @@ use App\Entity\User;
 use App\Enum\MovementKindEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\RouterInterface;
@@ -19,7 +18,6 @@ use Symfony\Component\Uid\Uuid;
 /**
  * RG-1.2 — forcer l'uuid d'un autre compte dans l'URL ne donne jamais accès à sa transaction.
  */
-#[Group('todo')]
 final class TransactionAccessTest extends WebTestCase
 {
     private KernelBrowser $client;
@@ -101,6 +99,7 @@ final class TransactionAccessTest extends WebTestCase
         // Sans la route, le 404 attendu viendrait du routeur et ne prouverait rien.
         /** @var RouterInterface $router */
         $router = self::getContainer()->get(RouterInterface::class);
+        $router->getContext()->setMethod($method);
         $router->match($uri);
 
         $this->client->request($method, $uri, $parameters, [], ['HTTP_SEC_FETCH_SITE' => 'same-origin']);

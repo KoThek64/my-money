@@ -20,7 +20,6 @@ use Symfony\Component\Uid\Uuid;
 /**
  * F01 / RG-2 / RG-3 / RG-4 — saisie et modification d'une transaction.
  */
-#[Group('todo')]
 final class TransactionFormTest extends WebTestCase
 {
     private KernelBrowser $client;
@@ -439,6 +438,18 @@ final class TransactionFormTest extends WebTestCase
     }
 
     /**
+     * Un montant illisible affiche le message traduit, pas celui de Symfony.
+     */
+    #[Group('template')]
+    public function testInvalidAmountShowsTheFrenchMessage(): void
+    {
+        $this->submit('/transaction/create', $this->fields(['amount' => 'douze']));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('body', 'Le montant saisi n\'est pas valide');
+    }
+
+    /**
      * RG-3 / RG-4 — le menu ne propose que les catégories actives du compte, du type de l'onglet.
      */
     #[Group('template')]
@@ -497,6 +508,20 @@ final class TransactionFormTest extends WebTestCase
         self::assertSame('2026-04-02', $row['date']);
         self::assertSame((string) $rent, $row['category_id']);
         self::assertSame('Loyer d\'avril', $row['label']);
+    }
+
+    /**
+     * RG-3 / RG-4 — une transaction de revenu change de catégorie parmi celles de revenu.
+     */
+    public function testIncomeTransactionCanBeEdited(): void
+    {
+        $id = $this->createTransaction($this->createCategory('Salaire', MovementKindEnum::REVENU));
+        $bonus = $this->createCategory('Prime', MovementKindEnum::REVENU);
+
+        $this->submit('/transaction/edit/'.$id, $this->fields(['category' => (string) $bonus]));
+
+        self::assertResponseRedirects('/');
+        self::assertSame((string) $bonus, $this->row($id)['category_id']);
     }
 
     /**
