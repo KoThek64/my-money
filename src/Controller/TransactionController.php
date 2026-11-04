@@ -33,8 +33,7 @@ final class TransactionController extends AbstractController
         if (null === $enumType) {
             throw $this->createNotFoundException();
         }
-        $transaction = new Transaction();
-        $transaction->setDate(new \DateTimeImmutable());
+        $transaction = $this->service->prepare();
 
         $form = $this->createForm(TransactionType::class, $transaction, ['type' => $enumType]);
         $form->handleRequest($request);

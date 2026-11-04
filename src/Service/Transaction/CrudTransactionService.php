@@ -14,6 +14,14 @@ readonly class CrudTransactionService
     ) {
     }
 
+    public function prepare(): Transaction
+    {
+        $transaction = new Transaction();
+        $transaction->setDate(new \DateTimeImmutable());
+
+        return $transaction;
+    }
+
     public function create(Transaction $transaction): void
     {
         $this->em->persist($transaction);
