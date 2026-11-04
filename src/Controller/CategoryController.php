@@ -8,6 +8,7 @@ use App\Entity\Category;
 use App\Form\CategoryEditType;
 use App\Form\CategoryType;
 use App\Repository\CategoryRepository;
+use App\Security\Voter\ArchivedCategoryVoter;
 use App\Security\Voter\OwnershipVoter;
 use App\Service\Category\CrudCategoryService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -67,12 +68,9 @@ final class CategoryController extends AbstractController
 
     #[Route('/edit/{id}', name: 'edit')]
     #[IsGranted(OwnershipVoter::EDIT, 'category')]
+    #[IsGranted(ArchivedCategoryVoter::MODIFY, 'category')]
     public function edit(Category $category, Request $request): Response
     {
-        if ($category->isArchived()) {
-            throw $this->createAccessDeniedException();
-        }
-
         $form = $this->createForm(
             CategoryEditType::class,
             $category,
@@ -94,12 +92,9 @@ final class CategoryController extends AbstractController
     #[Route('/delete/{id}', name: 'delete', methods: ['POST'])]
     #[IsCsrfTokenValid('delete-category')]
     #[IsGranted(OwnershipVoter::DELETE, 'category')]
+    #[IsGranted(ArchivedCategoryVoter::MODIFY, 'category')]
     public function delete(Category $category): RedirectResponse
     {
-        if ($category->isArchived()) {
-            throw $this->createAccessDeniedException();
-        }
-
         $this->service->delete($category);
 
         return $this->redirectToRoute('app_category_show_all');
