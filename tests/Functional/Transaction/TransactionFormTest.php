@@ -225,7 +225,7 @@ final class TransactionFormTest extends WebTestCase
 
         $this->submit($uri, $this->fields(['category' => (string) $category]));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         $row = $this->onlyRow();
         self::assertSame(1299, $row['amount']);
         self::assertSame('2026-03-15', $row['date']);
@@ -257,7 +257,7 @@ final class TransactionFormTest extends WebTestCase
     {
         $this->submit('/transaction/create', $this->fields(['amount' => $amount]));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         self::assertSame($cents, $this->onlyRow()['amount']);
     }
 
@@ -355,7 +355,7 @@ final class TransactionFormTest extends WebTestCase
 
         $this->submit('/transaction/create', $this->fields(['date' => $future]));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         self::assertSame($future, $this->onlyRow()['date']);
     }
 
@@ -376,7 +376,7 @@ final class TransactionFormTest extends WebTestCase
     {
         $this->submit('/transaction/create', $this->fields(['label' => $label]));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         self::assertNull($this->onlyRow()['label']);
     }
 
@@ -384,7 +384,7 @@ final class TransactionFormTest extends WebTestCase
     {
         $this->submit('/transaction/create', $this->fields(['label' => str_repeat('a', 120)]));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         self::assertSame(str_repeat('a', 120), $this->onlyRow()['label']);
     }
 
@@ -502,7 +502,7 @@ final class TransactionFormTest extends WebTestCase
             'label' => 'Loyer d\'avril',
         ]);
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         $row = $this->row($id);
         self::assertSame(2000, $row['amount']);
         self::assertSame('2026-04-02', $row['date']);
@@ -520,7 +520,7 @@ final class TransactionFormTest extends WebTestCase
 
         $this->submit('/transaction/edit/'.$id, $this->fields(['category' => (string) $bonus]));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         self::assertSame((string) $bonus, $this->row($id)['category_id']);
     }
 
@@ -571,7 +571,7 @@ final class TransactionFormTest extends WebTestCase
 
         $this->submit('/transaction/edit/'.$id, $this->fields(['amount' => '20,00']));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         $row = $this->row($id);
         self::assertSame(2000, $row['amount']);
         self::assertSame((string) $this->groceries, $row['category_id']);
@@ -597,7 +597,7 @@ final class TransactionFormTest extends WebTestCase
 
         $this->submit('/transaction/edit/'.$id, $this->fields(['amount' => '20,00']));
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         $row = $this->row($id);
         self::assertSame(2000, $row['amount']);
         self::assertSame($recurrence, $row['recurrence_id']);

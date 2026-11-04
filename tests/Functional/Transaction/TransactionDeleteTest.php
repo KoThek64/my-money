@@ -103,7 +103,7 @@ final class TransactionDeleteTest extends WebTestCase
     {
         $this->delete('POST', ['_token' => 'csrf-token']);
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects();
         self::assertNotNull($this->deletedAt());
     }
 

@@ -26,6 +26,11 @@ final class SmokeTest extends WebTestCase
     private const string ANY_UUID = '0197c3e0-0000-7000-8000-000000000001';
 
     /**
+     * Variables de route qui ne sont pas des uuid : une valeur qui respecte leurs contraintes.
+     */
+    private const array EXAMPLE_PARAMETERS = ['year' => '2026', 'month' => '09'];
+
+    /**
      * RG-1 — la liste vient du routeur : une route ajoutée demain est couverte d'office.
      */
     public function testEveryNonPublicRouteSendsAnonymousVisitorsToLogin(): void
@@ -44,7 +49,7 @@ final class SmokeTest extends WebTestCase
             // Une valeur par défaut (ex. {type} = depense) respecte les contraintes de la route, pas un uuid.
             $parameters = [];
             foreach ($route->compile()->getPathVariables() as $variable) {
-                $parameters[$variable] = $route->getDefault($variable) ?? self::ANY_UUID;
+                $parameters[$variable] = $route->getDefault($variable) ?? self::EXAMPLE_PARAMETERS[$variable] ?? self::ANY_UUID;
             }
             $requests[$name] = [$route->getMethods()[0] ?? 'GET', $router->generate($name, $parameters)];
         }
@@ -67,6 +72,9 @@ final class SmokeTest extends WebTestCase
         yield 'formulaire de création' => ['/category/create'];
         yield 'consultation' => ['/category/show/%s'];
         yield 'formulaire de modification' => ['/category/edit/%s'];
+        yield 'saisie (dépense par défaut)' => ['/transaction/create'];
+        yield 'saisie d\'un revenu' => ['/transaction/create/revenu'];
+        yield 'modification d\'une transaction' => ['/transaction/edit/%2$s'];
     }
 
     /**
@@ -110,23 +118,5 @@ final class SmokeTest extends WebTestCase
         $client->request('GET', \sprintf($uri, $category->getId(), $transaction->getId()));
 
         self::assertResponseIsSuccessful();
-    }
-
-    /**
-     * À fusionner dans pages() une fois les écrans de saisie codés.
-     *
-     * @return iterable<string, array{string}>
-     */
-    public static function transactionPages(): iterable
-    {
-        yield 'saisie (dépense par défaut)' => ['/transaction/create'];
-        yield 'saisie d\'un revenu' => ['/transaction/create/revenu'];
-        yield 'modification d\'une transaction' => ['/transaction/edit/%2$s'];
-    }
-
-    #[DataProvider('transactionPages')]
-    public function testTransactionPageRespondsForALoggedInUser(string $uri): void
-    {
-        $this->testPageRespondsForALoggedInUser($uri);
     }
 }
