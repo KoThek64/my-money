@@ -26,6 +26,19 @@ final class TransactionController extends AbstractController
     ) {
     }
 
+    private function redirectToMonth(Transaction $transaction): RedirectResponse
+    {
+        $date = $transaction->getDate();
+        if (!$date instanceof \DateTimeImmutable) {
+            return $this->redirectToRoute('app_history_current');
+        }
+
+        return $this->redirectToRoute('app_history_month', [
+            'year' => $date->format('Y'),
+            'month' => $date->format('m'),
+        ]);
+    }
+
     #[Route('/create/{type}', name: 'create')]
     public function create(Request $request, string $type = 'depense'): Response
     {
@@ -41,7 +54,7 @@ final class TransactionController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->service->create($transaction);
 
-            return $this->redirectToRoute('app_home'); // TODO à changer vers l'historique en phase 6
+            return $this->redirectToMonth($transaction);
         }
 
         return $this->render('transaction/create.html.twig', [
@@ -69,7 +82,7 @@ final class TransactionController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->service->edit();
 
-            return $this->redirectToRoute('app_home');
+            return $this->redirectToMonth($transaction);
         }
 
         return $this->render('transaction/edit.html.twig', [
@@ -84,6 +97,6 @@ final class TransactionController extends AbstractController
     {
         $this->service->delete($transaction);
 
-        return $this->redirectToRoute('app_home');
+        return $this->redirectToMonth($transaction);
     }
 }
