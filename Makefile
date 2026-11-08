@@ -111,7 +111,11 @@ sync: ## Réaligne master et dev sur le remote (après un « rebase and merge »
 	git switch dev && git reset --hard origin/dev
 	@printf "\n$(GREEN)✅  master et dev alignés sur le remote$(NC)\n"
 
-qa: cs phpstan rector test ## Lance tous les contrôles qualité (style + analyse + rector + tests)
+test-qa: ## Tests lancés par « make qa » : tous sauf « template » (provisoire, en attendant les templates de #5)
+	$(call title,🧪  Tests — PHPUnit (hors « template »))
+	$(PHP) bin/phpunit --exclude-group=template
+
+qa: cs phpstan rector test-qa ## Lance tous les contrôles qualité (style + analyse + rector + tests)
 	@printf "\n$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n"
 	@printf "$(GREEN) ✅  QA terminée — tous les contrôles sont passés$(NC)\n"
 	@printf "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)\n\n"
